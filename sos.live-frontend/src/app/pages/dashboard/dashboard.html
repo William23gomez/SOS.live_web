@@ -1,0 +1,115 @@
+<section class="dashboard-section">
+  <div class="overlay"></div>
+
+  <div class="container dashboard-shell">
+    <div class="dashboard-header">
+      <div>
+        <p class="eyebrow">Panel de usuario</p>
+        <h1>Tu perfil SOS.LIVE</h1>
+        <p class="subtitle">
+          Administra tus datos, verifica tu correo y controla el acceso de tu cuenta.
+        </p>
+      </div>
+
+      <div class="header-actions">
+        <button type="button" class="btn btn-outline-light" (click)="cerrarSesion()">
+          Cerrar sesion
+        </button>
+      </div>
+    </div>
+
+    <div *ngIf="feedbackMessage" class="status-banner" [class.status-error]="feedbackType === 'error'" [class.status-success]="feedbackType === 'success'">
+      {{ feedbackMessage }}
+    </div>
+
+    <div *ngIf="isLoading" class="loading-card">
+      Sincronizando datos del perfil...
+    </div>
+
+    <div class="dashboard-grid">
+      <article class="info-card verification-card">
+        <h2>Estado de la cuenta</h2>
+        <p class="info-label">Correo actual</p>
+        <p class="info-value">{{ formData.email }}</p>
+
+        <span class="verification-pill" [class.verification-pill-ok]="isEmailVerified" [class.verification-pill-warn]="!isEmailVerified">
+          {{ isEmailVerified ? 'Correo verificado' : 'Correo pendiente de verificacion' }}
+        </span>
+
+        <button
+          *ngIf="!isEmailVerified"
+          type="button"
+          class="btn btn-gold w-100 mt-3"
+          [disabled]="isResendingVerification"
+          (click)="reenviarVerificacion()">
+          {{ isResendingVerification ? 'Enviando...' : 'Reenviar verificacion' }}
+        </button>
+      </article>
+
+      <article class="info-card">
+        <h2>Editar perfil</h2>
+
+        <form (ngSubmit)="guardarCambios()">
+          <label class="field-label" for="dashboardNombre">Nombre completo</label>
+          <input
+            id="dashboardNombre"
+            name="dashboardNombre"
+            type="text"
+            class="form-control custom-input"
+            [(ngModel)]="formData.nombre"
+            required>
+
+          <label class="field-label" for="dashboardEmail">Correo</label>
+          <input
+            id="dashboardEmail"
+            name="dashboardEmail"
+            type="email"
+            class="form-control custom-input"
+            [(ngModel)]="formData.email"
+            required>
+
+          <label class="field-label" for="dashboardTelefono">Telefono</label>
+          <input
+            id="dashboardTelefono"
+            name="dashboardTelefono"
+            type="text"
+            inputmode="numeric"
+            class="form-control custom-input"
+            [(ngModel)]="formData.telefono"
+            (input)="onlyNumbers('telefono')"
+            required>
+
+          <label class="field-label" for="dashboardNit">NIT</label>
+          <input
+            id="dashboardNit"
+            name="dashboardNit"
+            type="text"
+            inputmode="numeric"
+            class="form-control custom-input"
+            [(ngModel)]="formData.nit"
+            (input)="onlyNumbers('nit')"
+            required>
+
+          <button type="submit" class="btn btn-gold w-100 mt-4" [disabled]="isSubmitting">
+            {{ isSubmitting ? 'Guardando...' : 'Guardar cambios' }}
+          </button>
+        </form>
+      </article>
+
+      <article class="info-card danger-card">
+        <h2>Zona sensible</h2>
+        <p>
+          Si eliminas tu cuenta, tambien se borraran tus datos guardados en el sistema.
+        </p>
+
+        <button
+          type="button"
+          class="btn btn-outline-danger w-100"
+          [disabled]="isDeleting"
+          (click)="eliminarCuenta()">
+          {{ isDeleting ? 'Eliminando...' : 'Eliminar cuenta' }}
+        </button>
+      </article>
+    </div>
+  </div>
+</section>

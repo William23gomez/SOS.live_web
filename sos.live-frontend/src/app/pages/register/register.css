@@ -1,0 +1,164 @@
+body {
+    margin: 0;
+    font-family: 'Segoe UI', sans-serif;
+}
+
+.back-circle {
+    position: absolute;
+    top: 30px;
+    left: 40px;
+    width: 45px;
+    height: 45px;
+    background: rgba(0,39,59,0.7);
+    backdrop-filter: blur(8px);
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #D4AF37;
+    text-decoration: none;
+    transition: 0.3s;
+    z-index: 3;
+}
+
+.back-circle:hover {
+    background: #D4AF37;
+    color: #00273B;
+    transform: scale(1.1);
+}
+
+/* Fondo */
+.register-section {
+    position: relative;
+    min-height: 100vh;
+    background: url('../../../assets/img/ai-generated-8136169_1920.png') center/cover no-repeat;
+    display: flex;
+    align-items: center;
+}
+
+.overlay {
+    position: absolute;
+    inset: 0;
+    background: rgba(0, 39, 59, 0.7);
+}
+
+.container {
+    position: relative;
+    z-index: 2;
+}
+
+/* TARJETA */
+.register-card {
+    background: rgba(0, 39, 59, 0.8);
+    backdrop-filter: blur(12px);
+    padding: 45px;
+    border-radius: 35px;
+    width: 100%;
+    max-width: 450px;
+    box-shadow: 0 20px 40px rgba(0, 0, 0, 0.4);
+    animation: fadeInUp 0.8s ease;
+}
+
+.status-banner {
+    border-radius: 18px;
+    margin-bottom: 18px;
+    padding: 14px 16px;
+    font-size: 0.95rem;
+    line-height: 1.4;
+    border: 1px solid transparent;
+}
+
+.status-success {
+    background: rgba(45, 166, 106, 0.18);
+    border-color: rgba(120, 255, 184, 0.45);
+    color: #dbffec;
+}
+
+.status-error {
+    background: rgba(180, 53, 53, 0.18);
+    border-color: rgba(255, 153, 153, 0.4);
+    color: #ffe1e1;
+}
+
+/* Inputs personalizados */
+.input-group-custom {
+    position: relative;
+    margin-bottom: 15px;
+}
+
+.input-group-custom i {
+    position: absolute;
+    left: 12px;
+    top: 50%;
+    transform: translateY(-50%);
+    color: #D4AF37;
+}
+
+.input-group-custom input,
+.input-group-custom select {
+    width: 100%;
+    height: 45px;
+    border-radius: 10px;
+    border: none;
+    padding-left: 40px;
+    outline: none;
+}
+
+/* Botón dorado */
+.btn-gold {
+    background-color: #D4AF37;
+    border: none;
+    color: #00273B;
+    font-weight: 600;
+    border-radius: 25px;
+    padding: 10px;
+    transition: 0.3s;
+}
+
+.btn-gold:hover {
+    background-color: #c49b2f;
+    transform: translateY(-3px);
+}
+
+.btn-gold:disabled {
+    opacity: 0.75;
+    cursor: not-allowed;
+    transform: none;
+}
+
+/* Texto dorado */
+.gold-text {
+    color: #D4AF37;
+}
+
+/* Lado derecho */
+.right-content {
+    padding-left: 5%;
+}
+
+/* Animación */
+@keyframes fadeInUp {
+    from {
+        opacity: 0;
+        transform: translateY(40px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+/* Responsive */
+@media (max-width: 992px) {
+
+    .right-content {
+        text-align: center;
+        margin-top: 50px;
+        padding-left: 0;
+    }
+
+    .register-section {
+        padding: 60px 0;
+    }
+}

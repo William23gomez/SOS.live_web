@@ -1,0 +1,138 @@
+:host {
+    display: block;
+}
+
+.custom-navbar {
+    background: rgba(0, 39, 59, 0.55);
+    backdrop-filter: blur(10px);
+    transition: all 0.4s ease;
+}
+
+.custom-navbar.scrolled {
+    background: rgba(0, 39, 59, 0.95);
+    box-shadow: 0 4px 15px rgba(0,0,0,0.4);
+}
+
+#logo { height: 50px; }
+#nombre { height: 30px; }
+
+.nav-link {
+    color: #fff !important;
+    transition: 0.3s;
+}
+
+.nav-link:hover {
+    color: #D4AF37 !important;
+}
+
+/* SEARCH */
+.search-container {
+    position: relative;
+    max-width: 400px;
+    width: 100%;
+}
+
+.search-input {
+    border-radius: 50px;
+    border: 1px solid #D4AF37;
+    background-color: rgba(0, 39, 59, 0.7);
+    color: #fff;
+}
+
+.search-icon {
+    position: absolute;
+    right: 15px;
+    top: 50%;
+    transform: translateY(-50%);
+    color: #D4AF37;
+}
+
+.hero-content {
+    position: relative;
+    z-index: 2;
+    text-align: center;
+    top: 50%;
+    transform: translateY(-50%);
+    color: #f0f0f0;
+    padding: 0 1rem;
+}
+
+.overlay-bottom {
+    height: 100px;
+    width: 75%;
+    background-color: #D4AF37;
+    bottom: 0;
+    left: 0;
+}
+
+.rounded-bottom-right {
+    border-bottom-right-radius: 50px;
+    color: #00273B;
+}
+
+.section-servicios {
+    background-color: #00273B;
+    color: #D4AF37;
+}
+
+header {
+    overflow: visible;
+}
+
+.float-out-below {
+    transform: translateY(40px);
+}
+
+.boxes {
+    background-color: #00273B;
+    border-radius: 20px;
+    border: 1px solid #D4AF37;
+}
+
+.card-img-top {
+    object-fit: cover;
+    height: 180px;
+}
+
+.card-title {
+    font-weight: bold;
+    font-size: 14px;
+}
+
+#logo12 {
+    height: 180px;
+    width: 180px;
+}
+
+.informacion {
+    color: #00273B;
+}
+
+.container-3 {
+    color: #00273B;
+}
+
+.testimonial {
+    max-width: 80%;
+    overflow-wrap: break-word;
+}
+
+section.bg-light {
+    color: #00273B;
+}
+
+footer {
+    background-color: #00273B;
+    color: #F3F4F6;
+}
+
+.bi {
+    color: #D4AF37;
+}
+
+#people {
+    width: 60px;
+    height: 60px;
+    border-radius: 50%;
+    margin-right: 10px;
+}

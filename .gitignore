@@ -1,0 +1,35 @@
+.qodo/
+
+# Node dependencies
+node_modules/
+backend/node_modules/
+sos.live-frontend/node_modules/
+
+# Build output
+dist/
+backend/dist/
+sos.live-frontend/dist/
+
+# Angular cache
+.angular/
+sos.live-frontend/.angular/
+
+# Logs
+*.log
+backend/.backend.log
+backend/.backend.err.log
+sos.live-frontend/.frontend.log
+sos.live-frontend/.frontend.err.log
+
+# Environment and secrets
+backend/.env
+backend/serviceAccountKey.json
+
+# IDE and OS files
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+
+# Repo backup
+sos.live-frontend/.git.frontend-backup/

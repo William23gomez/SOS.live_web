@@ -1,0 +1,150 @@
+body {
+    margin: 0;
+    font-family: 'Segoe UI', sans-serif;
+}
+
+
+.back-circle {
+    position: absolute;
+    top: 30px;
+    left: 40px;
+    width: 45px;
+    height: 45px;
+    background: rgba(0, 39, 59, 0.7);
+    backdrop-filter: blur(8px);
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #D4AF37;
+    text-decoration: none;
+    transition: 0.3s;
+    z-index: 3;
+}
+
+.back-circle:hover {
+    background: #D4AF37;
+    color: #00273B;
+    transform: scale(1.1);
+}
+
+
+.login-section {
+    position: relative;
+    height: 100vh;
+    background: url('../../../assets/img/ai-generated-8136169_1920.png') center/cover no-repeat;
+    display: flex;
+    align-items: center;
+}
+
+/* Overlay oscuro */
+.overlay {
+    position: absolute;
+    inset: 0;
+    background: rgba(0, 39, 59, 0.65);
+}
+
+/* Contenido encima */
+.container {
+    position: relative;
+    z-index: 2;
+}
+
+/* Lado izquierdo */
+.left-content {
+    padding-left: 5%;
+}
+
+/* TARJETA LOGIN */
+.login-card {
+    background: rgba(0, 39, 59, 0.75);
+    backdrop-filter: blur(12px);
+    padding: 50px 40px;
+    border-radius: 35px;
+    width: 100%;
+    max-width: 420px;
+    box-shadow: 0 15px 35px rgba(0, 0, 0, 0.4);
+}
+
+.status-banner {
+    border-radius: 18px;
+    margin-bottom: 18px;
+    padding: 14px 16px;
+    font-size: 0.95rem;
+    line-height: 1.4;
+    border: 1px solid transparent;
+}
+
+.status-success {
+    background: rgba(45, 166, 106, 0.18);
+    border-color: rgba(120, 255, 184, 0.45);
+    color: #dbffec;
+}
+
+.status-error {
+    background: rgba(180, 53, 53, 0.18);
+    border-color: rgba(255, 153, 153, 0.4);
+    color: #ffe1e1;
+}
+
+/* Inputs */
+.custom-input {
+    padding-left: 40px;
+    border-radius: 10px;
+    border: 2px solid transparent;
+    height: 45px;
+    transition: all 0.3s ease;
+}
+
+.custom-input:hover {
+    border: 2px solid #D4AF37;
+    box-shadow: 0 0 8px rgba(212, 175, 55, 0.4);
+}
+
+.custom-input:focus {
+    border: 2px solid #D4AF37;
+    box-shadow: 0 0 12px rgba(212, 175, 55, 0.6);
+    outline: none;
+}
+
+.input-icon {
+    position: absolute;
+    left: 12px;
+    top: 50%;
+    transform: translateY(-50%);
+    color: #D4AF37;
+}
+
+/* Botón dorado */
+.btn-gold {
+    background-color: #D4AF37;
+    border: none;
+    color: #00273B;
+    border-radius: 20px;
+    transition: 0.3s;
+}
+
+.btn-gold:hover {
+    background-color: #c49b2f;
+    transform: translateY(-3px);
+}
+
+.btn-gold:disabled {
+    opacity: 0.75;
+    cursor: not-allowed;
+    transform: none;
+}
+
+/* RESPONSIVE */
+@media (max-width: 992px) {
+    .left-content {
+        text-align: center;
+        margin-bottom: 40px;
+        padding-left: 0;
+    }
+
+    .login-section {
+        height: auto;
+        padding: 60px 0;
+    }
+}

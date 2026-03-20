@@ -1,0 +1,77 @@
+<section class="register-section">
+    <a routerLink="/home" class="back-circle">
+      <i class="bi bi-arrow-left"></i>
+    </a>
+
+    <div class="overlay"></div>
+
+    <div class="container h-100">
+      <div class="row align-items-center h-100">
+        <div class="col-lg-6 d-flex justify-content-center">
+          <div class="register-card">
+            <h2 class="fw-bold text-white mb-4">Crear una cuenta</h2>
+
+            <div
+              *ngIf="feedbackMessage"
+              class="status-banner"
+              [class.status-error]="feedbackType === 'error'"
+              [class.status-success]="feedbackType === 'success'">
+              {{ feedbackMessage }}
+            </div>
+
+            <form class="register-form" (ngSubmit)="onSubmit()">
+              <div class="input-group-custom">
+                <i class="bi bi-person-fill"></i>
+                <input id="nombre" name="nombre" type="text" placeholder="Nombre completo" [(ngModel)]="formData.nombre" required>
+              </div>
+
+              <div class="input-group-custom">
+                <i class="bi bi-envelope-fill"></i>
+                <input id="email" name="email" type="email" placeholder="Correo" [(ngModel)]="formData.email" required>
+              </div>
+
+              <div class="input-group-custom">
+                <i class="bi bi-telephone-fill"></i>
+                <input id="telefono" name="telefono" type="tel" inputmode="numeric" pattern="[0-9]*" placeholder="Telefono" [(ngModel)]="formData.telefono" (input)="onlyNumbers('telefono')" required>
+              </div>
+
+              <div class="input-group-custom">
+                <i class="bi bi-credit-card-fill"></i>
+                <input id="nit" name="nit" type="text" inputmode="numeric" pattern="[0-9]*" placeholder="NIT" [(ngModel)]="formData.nit" (input)="onlyNumbers('nit')" required>
+              </div>
+
+              <div class="input-group-custom">
+                <i class="bi bi-lock-fill"></i>
+                <input id="password" name="password" type="password" placeholder="Contrasena" [(ngModel)]="formData.password" required>
+              </div>
+
+              <div class="form-check text-white my-3">
+                <input class="form-check-input" type="checkbox" id="terms" name="terms" [(ngModel)]="formData.terms" required>
+                <label class="form-check-label small" for="terms">
+                  Al registrarte aceptas <span class="gold-text">terminos y condiciones</span>
+                </label>
+              </div>
+
+              <button type="submit" class="btn btn-gold w-100" [disabled]="isSubmitting">
+                {{ isSubmitting ? 'Creando cuenta...' : 'Registrarse' }}
+              </button>
+
+              <button
+                *ngIf="registrationCompleted"
+                type="button"
+                class="btn btn-outline-light w-100 mt-3"
+                (click)="goToLogin()">
+                Ir a iniciar sesion
+              </button>
+            </form>
+          </div>
+        </div>
+
+        <div class="col-lg-6 text-white text-center right-content">
+          <h3 class="fw-bold mb-3">Bienvenido a SOS.LIVE</h3>
+          <p class="mb-4">Si ya tienes una cuenta, inicia sesion aqui.</p>
+          <a routerLink="/login" class="btn btn-gold px-4">Iniciar sesion</a>
+        </div>
+      </div>
+    </div>
+  </section>
