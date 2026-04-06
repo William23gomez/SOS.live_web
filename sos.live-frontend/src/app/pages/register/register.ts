@@ -10,6 +10,8 @@ import { AuthService } from '../../core/auth.service';
   styleUrl: './register.css',
 })
 export class Register {
+  private readonly securePasswordPattern = /^(?=.*[A-Za-z])(?=.*\d).{6,}$/;
+
   formData = {
     nombre: '',
     email: '',
@@ -23,6 +25,7 @@ export class Register {
   feedbackMessage = '';
   feedbackType: 'success' | 'error' = 'success';
   registrationCompleted = false;
+  isSendingVerificationEmail = false;
 
   constructor(
     private readonly authService: AuthService,
@@ -42,6 +45,10 @@ export class Register {
   }
 
   async onSubmit() {
+    if (this.isSubmitting) {
+      return;
+    }
+
     const { nombre, email, telefono, nit, password, terms } = this.formData;
 
     if (!nombre || !email || !telefono || !nit || !password) {
@@ -64,12 +71,20 @@ export class Register {
       return;
     }
 
+    if (!this.securePasswordPattern.test(password)) {
+      this.showFeedback(
+        'La contrasena debe tener minimo 6 caracteres e incluir letras y numeros.',
+        'error'
+      );
+      return;
+    }
+
     this.isSubmitting = true;
     this.registrationCompleted = false;
     this.showFeedback('', 'success');
 
     try {
-      const result = await this.authService.registrarUsuario({
+      await this.authService.registrarUsuario({
         nombre,
         email,
         telefono,
@@ -78,9 +93,7 @@ export class Register {
       });
 
       this.showFeedback(
-        result.emailVerificationSent
-          ? 'Cuenta creada correctamente. Firebase envio el correo de verificacion; revisa tu bandeja y spam antes de iniciar sesion.'
-          : 'Cuenta creada correctamente. El perfil ya quedo registrado; si el correo no llega de inmediato, espera un momento y revisa spam.',
+        'Cuenta creada correctamente. Estamos enviando el correo de verificacion...',
         'success'
       );
       this.registrationCompleted = true;
@@ -92,9 +105,10 @@ export class Register {
         password: '',
         terms: false,
       };
+      this.isSubmitting = false;
+      void this.finalizarVerificacion();
     } catch (error) {
       this.showFeedback(this.authService.traducirErrorFirebase(error), 'error');
-    } finally {
       this.isSubmitting = false;
     }
   }
@@ -106,5 +120,22 @@ export class Register {
   private showFeedback(message: string, type: 'success' | 'error') {
     this.feedbackMessage = message;
     this.feedbackType = type;
+  }
+
+  private async finalizarVerificacion() {
+    this.isSendingVerificationEmail = true;
+
+    try {
+      const result = await this.authService.finalizarRegistroConVerificacion();
+
+      this.showFeedback(
+        result.emailVerificationSent
+          ? 'Cuenta creada correctamente. Firebase envio el correo de verificacion; revisa tu bandeja y spam antes de iniciar sesion.'
+          : `Cuenta creada correctamente, pero Firebase no pudo enviar el correo de verificacion.${result.emailVerificationError ? ` ${result.emailVerificationError}` : ''}`,
+        'success'
+      );
+    } finally {
+      this.isSendingVerificationEmail = false;
+    }
   }
 }

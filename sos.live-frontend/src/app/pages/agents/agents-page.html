@@ -1,0 +1,28 @@
+<app-enterprise-shell>
+  <section class="panel-card section-panel">
+    <div class="panel-heading">
+      <div>
+        <p class="panel-kicker">Gestion de agentes</p>
+        <h2>Equipos disponibles</h2>
+      </div>
+      <div class="section-actions">
+        <input class="toolbar-input" type="text" placeholder="Buscar agente..." [(ngModel)]="vm.agentSearch">
+      </div>
+    </div>
+
+    <div class="cards-grid">
+      <article class="sub-card" *ngFor="let agent of vm.availableAgents">
+        <div class="sub-card-head">
+          <strong>{{ agent.nombre }}</strong>
+          <span class="badge-pill" [class.badge-success]="agent.estado === 'Disponible'" [class.badge-danger]="agent.estado !== 'Disponible'">{{ agent.estado }}</span>
+        </div>
+        <p>Codigo: {{ agent.codigo }}</p>
+        <p>Zona: {{ agent.zona }}</p>
+        <p>Telefono: {{ agent.telefono }}</p>
+        <button type="button" class="btn btn-outline-light btn-sm" (click)="vm.toggleAgentStatus(agent.codigo)">
+          Cambiar estado
+        </button>
+      </article>
+    </div>
+  </section>
+</app-enterprise-shell>

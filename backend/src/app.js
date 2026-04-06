@@ -9,7 +9,22 @@ const app = express();
 
 app.use(
   cors({
-    origin: env.frontendUrl,
+    origin(origin, callback) {
+      if (!origin) {
+        callback(null, true);
+        return;
+      }
+
+      const isConfiguredFrontend = origin === env.frontendUrl;
+      const isLocalDevOrigin = /^https?:\/\/(localhost|127\.0\.0\.1):\d+$/.test(origin);
+
+      if (isConfiguredFrontend || isLocalDevOrigin) {
+        callback(null, true);
+        return;
+      }
+
+      callback(new Error('Origen no permitido por CORS'));
+    },
   })
 );
 app.use(express.json());

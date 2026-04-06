@@ -1,0 +1,123 @@
+<app-enterprise-shell>
+  <section class="stats-grid">
+    <article *ngFor="let card of vm.summaryCards" class="metric-card" [attr.data-accent]="card.accent">
+      <div class="metric-icon">
+        <i [class]="'bi ' + card.icon"></i>
+      </div>
+      <p class="metric-title">{{ card.title }}</p>
+      <strong class="metric-value">{{ card.value }}</strong>
+      <span class="metric-detail">{{ card.detail }}</span>
+    </article>
+  </section>
+
+  <section class="content-grid">
+    <article class="panel-card map-panel">
+      <div class="panel-heading">
+        <div>
+          <p class="panel-kicker">Mapa operativo</p>
+          <h2>Ubicacion real seleccionada</h2>
+        </div>
+      </div>
+
+      <div class="map-toolbar">
+        <div class="map-chip">Actualizado con datos reales</div>
+        <div class="map-chip">Alertas monitoreadas: {{ vm.filteredAlerts.length }}</div>
+      </div>
+
+      <div class="detail-panel">
+        <p class="panel-kicker">Sin simulaciones</p>
+        <h3>Este resumen ya no usa marcadores fijos</h3>
+        <p class="detail-copy">
+          El mapa principal del dashboard solo se muestra cuando existe una ubicacion real en los datos.
+        </p>
+      </div>
+
+      <div class="map-footer-grid">
+        <article class="mini-card">
+          <p class="footer-label">Alertas recientes</p>
+          <div class="mini-list">
+            <button type="button" class="mini-row mini-row-button" *ngFor="let alert of vm.recentAlerts.slice(0, 3)" (click)="vm.focusAlertFromMap(alert.id)">
+              <strong>{{ alert.usuario }}</strong>
+              <span>{{ alert.ubicacion }}</span>
+            </button>
+            <div class="mini-row" *ngIf="vm.recentAlerts.length === 0">
+              <strong>Sin alertas</strong>
+              <span>No hay alertas registradas.</span>
+            </div>
+          </div>
+        </article>
+
+        <article class="mini-card">
+          <p class="footer-label">Agentes en campo</p>
+          <div class="mini-list">
+            <div class="mini-row" *ngFor="let agent of vm.agents.slice(0, 3)">
+              <strong>{{ agent.nombre }}</strong>
+              <span>{{ agent.estado }} - {{ agent.zona }}</span>
+            </div>
+            <div class="mini-row" *ngIf="vm.agents.length === 0">
+              <strong>Sin agentes</strong>
+              <span>No hay agentes registrados.</span>
+            </div>
+          </div>
+        </article>
+      </div>
+    </article>
+
+    <div class="side-panels">
+      <article class="panel-card security-panel">
+        <div class="panel-heading">
+          <div>
+            <p class="panel-kicker">Seguridad</p>
+            <h2>Estado de la cuenta</h2>
+          </div>
+        </div>
+
+        <p class="info-label">Correo actual</p>
+        <p class="info-value">{{ vm.formData.email }}</p>
+
+        <span class="verification-pill" [class.verification-pill-ok]="vm.isEmailVerified" [class.verification-pill-warn]="!vm.isEmailVerified">
+          {{ vm.isEmailVerified ? 'Correo verificado' : 'Correo pendiente de verificacion' }}
+        </span>
+
+        <button
+          *ngIf="!vm.isEmailVerified"
+          type="button"
+          class="btn btn-gold w-100 mt-3"
+          [disabled]="vm.isResendingVerification"
+          (click)="vm.reenviarVerificacion()">
+          {{ vm.isResendingVerification ? 'Enviando...' : 'Reenviar verificacion' }}
+        </button>
+
+        <div class="security-note">
+          <i class="bi bi-shield-check"></i>
+          Mantener tu correo verificado mejora la recuperacion de acceso y la trazabilidad.
+        </div>
+      </article>
+
+      <article class="panel-card">
+        <div class="panel-heading">
+          <div>
+            <p class="panel-kicker">Monitoreo</p>
+            <h2>Actividad reciente</h2>
+          </div>
+        </div>
+        <div class="timeline-list">
+          <div class="timeline-row" *ngFor="let item of vm.notifications.slice(0, 3)">
+            <span class="timeline-dot" [class.timeline-dot-danger]="item.tipo === 'danger'" [class.timeline-dot-success]="item.tipo === 'success'"></span>
+            <div>
+              <strong>{{ item.titulo }}</strong>
+              <p>{{ item.descripcion }}</p>
+            </div>
+          </div>
+          <div class="timeline-row" *ngIf="vm.notifications.length === 0">
+            <span class="timeline-dot"></span>
+            <div>
+              <strong>Sin notificaciones</strong>
+              <p>No hay eventos registrados.</p>
+            </div>
+          </div>
+        </div>
+      </article>
+    </div>
+  </section>
+</app-enterprise-shell>

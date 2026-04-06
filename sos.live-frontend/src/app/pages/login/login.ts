@@ -16,6 +16,7 @@ export class Login {
   };
 
   isSubmitting = false;
+  isSendingResetEmail = false;
   feedbackMessage = '';
   feedbackType: 'success' | 'error' = 'success';
 
@@ -25,10 +26,15 @@ export class Login {
   ) {}
 
   async onSubmit() {
+    if (this.isSubmitting) {
+      return;
+    }
+
     const { email, password } = this.formData;
 
     if (!email || !password) {
       this.showFeedback('Completa correo y contrasena para iniciar sesion.', 'error');
+      window.alert('Completa correo y contrasena para iniciar sesion.');
       return;
     }
 
@@ -36,16 +42,53 @@ export class Login {
     this.showFeedback('', 'success');
 
     try {
-      await this.authService.loginUsuario({ email, password });
+      const response = await this.authService.loginUsuario({ email, password });
       this.showFeedback('Inicio de sesion exitoso. Redirigiendo...', 'success');
+      window.alert('Inicio de sesion exitoso.');
 
-      setTimeout(() => {
-        void this.router.navigate(['/dashboard']);
-      }, 1000);
+      await this.router.navigate([this.authService.getRedirectRouteForRole(response.user.rol)]);
+    } catch (error) {
+      const message = this.authService.traducirErrorFirebase(error);
+      this.showFeedback(message, 'error');
+      window.alert(message);
+    } finally {
+      this.isSubmitting = false;
+    }
+  }
+
+  async onResetPassword(event?: Event) {
+    event?.preventDefault();
+
+    if (this.isSendingResetEmail) {
+      return;
+    }
+
+    const email = this.formData.email.trim();
+
+    if (!email) {
+      this.showFeedback('Escribe tu correo y luego pulsa "Restablecela aqui".', 'error');
+      return;
+    }
+
+    this.isSendingResetEmail = true;
+    this.showFeedback('', 'success');
+
+    try {
+      await this.authService.restablecerContrasena(email, {
+        url: `${window.location.origin}/reset-password`,
+        handleCodeInApp: false,
+      });
+
+      await this.router.navigate(['/reset-password'], {
+        queryParams: {
+          notice: 'sent',
+          email,
+        },
+      });
     } catch (error) {
       this.showFeedback(this.authService.traducirErrorFirebase(error), 'error');
     } finally {
-      this.isSubmitting = false;
+      this.isSendingResetEmail = false;
     }
   }
 

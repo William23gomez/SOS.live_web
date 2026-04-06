@@ -1,14 +1,19 @@
 import { Injectable } from '@angular/core';
 import { HttpClient, HttpErrorResponse, HttpHeaders } from '@angular/common/http';
 import {
+  ActionCodeSettings,
+  confirmPasswordReset,
   createUserWithEmailAndPassword,
   deleteUser,
+  onAuthStateChanged,
   reload,
   sendEmailVerification,
+  sendPasswordResetEmail,
   signInWithEmailAndPassword,
   signOut,
   updateEmail,
   User,
+  verifyPasswordResetCode,
 } from 'firebase/auth';
 import { firstValueFrom } from 'rxjs';
 
@@ -29,6 +34,7 @@ export interface LoginPayload {
 
 interface RegisterFlowResult {
   emailVerificationSent: boolean;
+  emailVerificationError?: string;
 }
 
 interface AuthResponse {
@@ -40,6 +46,7 @@ interface AuthResponse {
     email: string;
     telefono: string;
     nit: string;
+    rol: 'admin' | 'empresa';
     createdAt: string;
   };
   idToken?: string;
@@ -52,15 +59,30 @@ export interface ProfileResponse {
   user: AuthResponse['user'];
 }
 
-const EMAIL_VERIFICATION_TIMEOUT_MS = 5000;
+const EMAIL_VERIFICATION_TIMEOUT_MS = 15000;
+const REGISTER_REQUEST_TIMEOUT_MS = 12000;
 const PROFILE_REQUEST_TIMEOUT_MS = 7000;
+const LOGIN_AUTH_TIMEOUT_MS = 12000;
+const VERIFY_SESSION_TIMEOUT_MS = 12000;
 const PROFILE_CACHE_KEY = 'profileCache';
+const AUTH_STATE_TIMEOUT_MS = 7000;
 
 @Injectable({ providedIn: 'root' })
 export class AuthService {
   private readonly apiUrl = 'http://localhost:3000/api/auth';
 
   constructor(private readonly http: HttpClient) {}
+
+  private async withTimeout<T>(promise: Promise<T>, message: string, timeoutMs: number) {
+    return Promise.race([
+      promise,
+      new Promise<T>((_, reject) => {
+        setTimeout(() => {
+          reject(new Error(message));
+        }, timeoutMs);
+      }),
+    ]);
+  }
 
   private async sendVerificationEmailWithTimeout() {
     const currentUser = auth.currentUser;
@@ -69,16 +91,16 @@ export class AuthService {
       return false;
     }
 
-    try {
-      await Promise.race([
-        sendEmailVerification(currentUser),
-        new Promise((resolve) => setTimeout(resolve, EMAIL_VERIFICATION_TIMEOUT_MS)),
-      ]);
+    await this.withTimeout(
+      sendEmailVerification(currentUser, {
+        url: `${window.location.origin}/login`,
+        handleCodeInApp: false,
+      }),
+      'El envio del correo de verificacion tardo demasiado.',
+      EMAIL_VERIFICATION_TIMEOUT_MS
+    );
 
-      return true;
-    } catch {
-      return false;
-    }
+    return true;
   }
 
   private async getAuthHeaders() {
@@ -102,6 +124,25 @@ export class AuthService {
     localStorage.setItem(PROFILE_CACHE_KEY, JSON.stringify(user));
   }
 
+  async waitForCurrentUser(timeoutMs = AUTH_STATE_TIMEOUT_MS): Promise<User | null> {
+    if (auth.currentUser) {
+      return auth.currentUser;
+    }
+
+    return new Promise<User | null>((resolve) => {
+      const timer = setTimeout(() => {
+        unsubscribe();
+        resolve(auth.currentUser);
+      }, timeoutMs);
+
+      const unsubscribe = onAuthStateChanged(auth, (user) => {
+        clearTimeout(timer);
+        unsubscribe();
+        resolve(user);
+      });
+    });
+  }
+
   getCachedProfile(): AuthResponse['user'] | null {
     const rawProfile = localStorage.getItem(PROFILE_CACHE_KEY);
 
@@ -121,32 +162,46 @@ export class AuthService {
     return auth.currentUser;
   }
 
+  getRedirectRouteForRole(role?: string) {
+    return role === 'admin' ? '/admin' : '/dashboard';
+  }
+
   async registrarUsuario({
     nombre,
     email,
     telefono,
     nit,
     password,
-  }: RegisterPayload): Promise<RegisterFlowResult> {
+    }: RegisterPayload): Promise<RegisterFlowResult> {
     try {
-      const credentials = await createUserWithEmailAndPassword(auth, email, password);
-
-      const idToken = await credentials.user.getIdToken();
-
-      await firstValueFrom(
-        this.http.post<RegisterResponse>(`${this.apiUrl}/register`, {
-          idToken,
-          nombre,
-          telefono,
-          nit,
-        })
+      const credentials = await this.withTimeout(
+        createUserWithEmailAndPassword(auth, email, password),
+        'Firebase tardo demasiado en crear la cuenta. Intenta de nuevo.',
+        LOGIN_AUTH_TIMEOUT_MS
       );
 
-      const emailVerificationSent = await this.sendVerificationEmailWithTimeout();
-      void signOut(auth).catch(() => {});
+      const idToken = await this.withTimeout(
+        credentials.user.getIdToken(),
+        'Firebase tardo demasiado en generar el token de registro.',
+        LOGIN_AUTH_TIMEOUT_MS
+      );
+
+      await this.withTimeout(
+        firstValueFrom(
+          this.http.post<RegisterResponse>(`${this.apiUrl}/register`, {
+            idToken,
+            nombre,
+            telefono,
+            nit,
+          })
+        ),
+        'El registro en el servidor tardo demasiado. Intenta de nuevo.',
+        REGISTER_REQUEST_TIMEOUT_MS
+      );
 
       return {
-        emailVerificationSent,
+        emailVerificationSent: false,
+        emailVerificationError: '',
       };
     } catch (error) {
       if (auth.currentUser) {
@@ -157,8 +212,30 @@ export class AuthService {
     }
   }
 
+  async finalizarRegistroConVerificacion(): Promise<RegisterFlowResult> {
+    let emailVerificationSent = false;
+    let emailVerificationError = '';
+
+    try {
+      emailVerificationSent = await this.sendVerificationEmailWithTimeout();
+    } catch (error) {
+      emailVerificationError = this.traducirErrorFirebase(error);
+    } finally {
+      void signOut(auth).catch(() => {});
+    }
+
+    return {
+      emailVerificationSent,
+      emailVerificationError,
+    };
+  }
+
   async loginUsuario({ email, password }: LoginPayload) {
-    const credentials = await signInWithEmailAndPassword(auth, email, password);
+    const credentials = await this.withTimeout(
+      signInWithEmailAndPassword(auth, email, password),
+      'El inicio de sesion tardo demasiado. Verifica tu conexion e intenta de nuevo.',
+      LOGIN_AUTH_TIMEOUT_MS
+    );
 
     await reload(credentials.user);
 
@@ -172,10 +249,14 @@ export class AuthService {
     const idToken = await credentials.user.getIdToken();
     localStorage.setItem('authToken', idToken);
 
-    const response = await firstValueFrom(
-      this.http.post<AuthResponse>(`${this.apiUrl}/verify-session`, {
-        idToken,
-      })
+    const response = await this.withTimeout(
+      firstValueFrom(
+        this.http.post<AuthResponse>(`${this.apiUrl}/verify-session`, {
+          idToken,
+        })
+      ),
+      'El servidor tardo demasiado en validar la sesion. Intenta de nuevo.',
+      VERIFY_SESSION_TIMEOUT_MS
     );
 
     this.saveProfileCache(response.user);
@@ -205,11 +286,15 @@ export class AuthService {
     email,
     telefono,
     nit,
+    direccion,
+    plan,
   }: {
     nombre: string;
     email: string;
     telefono: string;
     nit: string;
+    direccion: string;
+    plan: string;
   }) {
     const currentUser = auth.currentUser;
 
@@ -230,7 +315,7 @@ export class AuthService {
     const response = await firstValueFrom(
       this.http.put<{ message: string; user: AuthResponse['user'] }>(
         `${this.apiUrl}/profile`,
-        { nombre, telefono, nit },
+        { nombre, telefono, nit, direccion, plan },
         { headers }
       )
     );
@@ -253,6 +338,52 @@ export class AuthService {
     }
 
     return this.sendVerificationEmailWithTimeout();
+  }
+
+  async restablecerContrasena(email: string, actionCodeSettings?: ActionCodeSettings) {
+    if (!email) {
+      const error = new Error('Escribe tu correo para restablecer la contrasena.');
+      (error as Error & { code?: string }).code = 'auth/missing-email';
+      throw error;
+    }
+
+    await this.withTimeout(
+      sendPasswordResetEmail(auth, email, actionCodeSettings),
+      'El envio del correo de recuperacion tardo demasiado. Intenta de nuevo.',
+      LOGIN_AUTH_TIMEOUT_MS
+    );
+  }
+
+  async confirmarRestablecimientoContrasena(code: string, newPassword: string) {
+    if (!code) {
+      const error = new Error(
+        'El enlace de restablecimiento no es valido. Solicita uno nuevo desde el correo.'
+      );
+      (error as Error & { code?: string }).code = 'auth/missing-reset-code';
+      throw error;
+    }
+
+    await this.withTimeout(
+      confirmPasswordReset(auth, code, newPassword),
+      'El cambio de contrasena tardo demasiado. Intenta de nuevo.',
+      LOGIN_AUTH_TIMEOUT_MS
+    );
+  }
+
+  async validarCodigoRestablecimiento(code: string) {
+    if (!code) {
+      const error = new Error(
+        'El enlace de restablecimiento no es valido. Solicita uno nuevo desde el correo.'
+      );
+      (error as Error & { code?: string }).code = 'auth/missing-reset-code';
+      throw error;
+    }
+
+    return this.withTimeout(
+      verifyPasswordResetCode(auth, code),
+      'La validacion del enlace tardo demasiado. Intenta abrirlo otra vez.',
+      LOGIN_AUTH_TIMEOUT_MS
+    );
   }
 
   async cerrarSesion() {
@@ -302,7 +433,28 @@ export class AuthService {
     if (code === 'auth/no-current-user') {
       return 'No hay una sesion activa. Vuelve a iniciar sesion.';
     }
+    if (code === 'auth/missing-email') {
+      return 'Escribe tu correo para restablecer la contrasena.';
+    }
+    if (code === 'auth/missing-reset-code') {
+      return 'El enlace de restablecimiento no es valido. Solicita uno nuevo desde el correo.';
+    }
+    if (code === 'auth/unauthorized-continue-uri' || code === 'auth/invalid-continue-uri') {
+      return 'Firebase bloqueo el enlace del correo. Agrega localhost y 127.0.0.1 en Authentication > Settings > Authorized domains.';
+    }
+    if (code === 'auth/operation-not-allowed') {
+      return 'Firebase no tiene habilitado el acceso con correo y contrasena.';
+    }
+    if (code === 'auth/network-request-failed') {
+      return 'Firebase no pudo conectarse para enviar el correo. Revisa la conexion e intenta de nuevo.';
+    }
     if (code === 'auth/invalid-credential') return 'Correo o contrasena incorrectos.';
+    if (code === 'auth/expired-action-code' || code === 'auth/invalid-action-code') {
+      return 'El enlace para restablecer la contrasena ya no es valido o vencio.';
+    }
+    if (code === 'auth/user-not-found') {
+      return 'No encontramos una cuenta con ese correo.';
+    }
     if (code === 'auth/requires-recent-login') {
       return 'Por seguridad, vuelve a iniciar sesion y repite la accion.';
     }

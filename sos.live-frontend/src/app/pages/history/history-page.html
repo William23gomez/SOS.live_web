@@ -1,0 +1,34 @@
+<app-enterprise-shell>
+  <section class="panel-card section-panel">
+    <div class="panel-heading">
+      <div>
+        <p class="panel-kicker">Historial de servicios</p>
+        <h2>Seguimiento completado</h2>
+      </div>
+      <div class="section-actions">
+        <select class="toolbar-select" [(ngModel)]="vm.selectedHistoryStatus">
+          <option>Todos</option>
+          <option>Completado</option>
+          <option>Cancelado</option>
+        </select>
+      </div>
+    </div>
+
+    <div class="data-table">
+      <div class="table-head">
+        <span>Usuario</span>
+        <span>Tipo</span>
+        <span>Fecha</span>
+        <span>Duracion</span>
+        <span>Estado</span>
+      </div>
+      <div class="table-row table-row-short" *ngFor="let row of vm.filteredHistoryRows">
+        <span>{{ row.usuario }}</span>
+        <span>{{ row.tipo }}</span>
+        <span>{{ row.fecha }}</span>
+        <span>{{ row.duracion }}</span>
+        <span><span class="badge-pill" [class.badge-success]="row.estado === 'Completado'" [class.badge-danger]="row.estado === 'Cancelado'">{{ row.estado }}</span></span>
+      </div>
+    </div>
+  </section>
+</app-enterprise-shell>

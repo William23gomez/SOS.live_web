@@ -1,0 +1,96 @@
+<section class="dashboard-section">
+  <div class="dashboard-backdrop"></div>
+
+  <div class="container-fluid dashboard-shell">
+    <aside class="sidebar-card">
+      <div class="brand-block">
+        <div class="brand-badge">
+          <i class="bi bi-shield-shaded"></i>
+        </div>
+        <div>
+          <p class="brand-kicker">Plataforma</p>
+          <h2>SOS.LIVE</h2>
+        </div>
+      </div>
+
+      <nav class="sidebar-nav">
+        <a class="nav-item" [class.nav-item-active]="vm.activeSection === 'overview'" routerLink="/dashboard">
+          <i class="bi bi-grid-1x2-fill"></i>
+          Dashboard
+        </a>
+        <a class="nav-item" [class.nav-item-active]="vm.activeSection === 'alerts'" routerLink="/alertas">
+          <i class="bi bi-exclamation-triangle-fill"></i>
+          Alertas
+        </a>
+        <a class="nav-item" [class.nav-item-active]="vm.activeSection === 'agents'" routerLink="/agentes">
+          <i class="bi bi-people-fill"></i>
+          Agentes
+        </a>
+        <a class="nav-item" [class.nav-item-active]="vm.activeSection === 'history'" routerLink="/historial">
+          <i class="bi bi-clock-history"></i>
+          Historial
+        </a>
+        <a class="nav-item" [class.nav-item-active]="vm.activeSection === 'company'" routerLink="/perfil-empresa">
+          <i class="bi bi-building-fill"></i>
+          Perfil empresa
+        </a>
+        <a class="nav-item" [class.nav-item-active]="vm.activeSection === 'billing'" routerLink="/pagos">
+          <i class="bi bi-credit-card-2-front-fill"></i>
+          Pagos
+        </a>
+        <a class="nav-item" [class.nav-item-active]="vm.activeSection === 'notifications'" routerLink="/notificaciones">
+          <i class="bi bi-bell-fill"></i>
+          Notificaciones
+        </a>
+      </nav>
+
+      <div class="sidebar-status">
+        <p class="sidebar-label">Estado de la sesion</p>
+        <div class="system-chip">
+          <span class="system-dot"></span>
+          Sesion autenticada
+        </div>
+        <p class="sidebar-copy">
+          Los datos visibles en el panel provienen de tus registros reales.
+        </p>
+      </div>
+    </aside>
+
+    <main class="dashboard-main">
+      <header class="topbar-card">
+        <div>
+          <p class="eyebrow">Dashboard principal</p>
+          <h1>Centro de control SOS.LIVE</h1>
+          <p class="subtitle">
+            Gestiona alertas, agentes, historial operativo y cobertura desde una sola vista.
+          </p>
+        </div>
+
+        <div class="topbar-user">
+          <div class="live-status">
+            <span class="live-dot"></span>
+            En vivo {{ vm.realtimeClock }}
+          </div>
+          <div class="welcome-copy">
+            <span class="welcome-label">Sesion activa</span>
+            <strong>{{ vm.displayName }}</strong>
+          </div>
+          <div class="avatar-chip">{{ vm.userInitials }}</div>
+          <button type="button" class="btn btn-outline-light" (click)="vm.cerrarSesion()">
+            Cerrar sesion
+          </button>
+        </div>
+      </header>
+
+      <div *ngIf="vm.feedbackMessage" class="status-banner" [class.status-error]="vm.feedbackType === 'error'" [class.status-success]="vm.feedbackType === 'success'">
+        {{ vm.feedbackMessage }}
+      </div>
+
+      <div *ngIf="vm.isLoading" class="loading-card">
+        Sincronizando datos del dashboard...
+      </div>
+
+      <ng-content></ng-content>
+    </main>
+  </div>
+</section>
