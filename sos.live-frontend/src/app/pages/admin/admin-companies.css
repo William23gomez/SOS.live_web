@@ -10,7 +10,7 @@
     padding: 22px;
     border-radius: 24px;
     border: 1px solid rgba(255, 255, 255, 0.08);
-    background: rgba(18, 9, 21, 0.86);
+    background: rgba(8, 21, 35, 0.82);
 }
 
 .admin-companies-hero h2 {
@@ -22,7 +22,7 @@
 
 .admin-companies-copy {
     margin: 0;
-    color: rgba(255, 237, 236, 0.74);
+    color: rgba(233, 239, 246, 0.78);
     line-height: 1.6;
 }
 
@@ -41,7 +41,7 @@
 
 .admin-company-metric span {
     display: block;
-    color: rgba(255, 237, 236, 0.68);
+    color: rgba(233, 239, 246, 0.68);
     font-size: 0.84rem;
 }
 
@@ -63,7 +63,7 @@
     padding: 20px;
     border-radius: 22px;
     border: 1px solid rgba(255, 255, 255, 0.08);
-    background: rgba(18, 9, 21, 0.86);
+    background: rgba(8, 21, 35, 0.82);
 }
 
 .admin-company-card-head {
@@ -83,7 +83,7 @@
 
 .admin-company-card-head p {
     margin: 6px 0 0;
-    color: rgba(255, 237, 236, 0.68);
+    color: rgba(233, 239, 246, 0.68);
 }
 
 .admin-company-meta {
@@ -95,7 +95,7 @@
 .admin-company-label {
     display: block;
     margin-bottom: 6px;
-    color: rgba(255, 237, 236, 0.54);
+    color: rgba(233, 239, 246, 0.54);
     text-transform: uppercase;
     letter-spacing: 0.06em;
     font-size: 0.76rem;
