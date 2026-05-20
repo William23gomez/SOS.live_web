@@ -118,6 +118,19 @@ const createAgent = async (req, res, next) => {
   }
 };
 
+const resolveAgentAccess = async (req, res, next) => {
+  try {
+    const result = await operationsService.resolveAgentAccess(req.body);
+
+    res.status(200).json({
+      message: 'Acceso del agente validado correctamente.',
+      ...result,
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
 const deleteAgent = async (req, res, next) => {
   try {
     await operationsService.deleteAgent(req.params.codigo);
@@ -163,6 +176,7 @@ module.exports = {
   finalizeAlert,
   cancelAlert,
   updateAgentStatus,
+  resolveAgentAccess,
   createAgent,
   deleteAgent,
   markNotificationAsRead,

@@ -12,6 +12,7 @@ import {
   DashboardHistoryRow,
   DashboardNotification,
 } from './dashboard-data.service';
+import { OperationsService } from './operations.service';
 import { auth } from './firebase.config';
 
 type DashboardSection =
@@ -32,6 +33,15 @@ export class DashboardStateService {
     email: '',
     telefono: '',
     nit: '',
+  };
+
+  agentFormData = {
+    nombre: '',
+    usuario: '',
+    password: '',
+    codigo: '',
+    zona: '',
+    telefono: '',
   };
 
   recentAlerts: DashboardAlert[] = [];
@@ -77,6 +87,7 @@ export class DashboardStateService {
   constructor(
     private readonly authService: AuthService,
     private readonly dashboardDataService: DashboardDataService,
+    private readonly operationsService: OperationsService,
     private readonly router: Router
   ) {}
 
@@ -185,7 +196,7 @@ export class DashboardStateService {
     return this.agents.filter((agent) => {
       const matchesSearch =
         !search ||
-        [agent.nombre, agent.codigo, agent.zona, agent.estado].some((value) =>
+        [agent.nombre, agent.codigo, agent.usuario || '', agent.zona, agent.estado].some((value) =>
           value.toLowerCase().includes(search)
         );
 
@@ -282,6 +293,28 @@ export class DashboardStateService {
       );
     } catch (error) {
       this.showFeedback(this.authService.traducirErrorFirebase(error), 'error');
+    }
+  }
+
+  async createAgent(payload: {
+    nombre: string;
+    usuario: string;
+    password: string;
+    zona: string;
+    telefono: string;
+    codigo: string;
+  }) {
+    this.isSubmitting = true;
+    this.showFeedback('', 'success');
+
+    try {
+      const result = await this.operationsService.createAgent(payload);
+      this.agents.push(result.agent);
+      this.showFeedback('Agente creado correctamente.', 'success');
+    } catch (error) {
+      this.showFeedback(this.authService.traducirErrorFirebase(error), 'error');
+    } finally {
+      this.isSubmitting = false;
     }
   }
 

@@ -10,6 +10,14 @@ import {
 
 import { db } from './firebase.config';
 
+export interface DashboardMapLocation {
+  lat?: number;
+  lng?: number;
+  label?: string;
+  query?: string;
+  source?: 'geocoded' | 'heuristic' | 'unresolved';
+}
+
 export interface DashboardAlert {
   id: string;
   usuario: string;
@@ -20,14 +28,18 @@ export interface DashboardAlert {
   estado: 'Nueva' | 'En proceso' | 'En camino' | 'Asignada' | 'Asignado' | 'Finalizado' | 'Cancelado';
   agenteAsignado: string;
   descripcion: string;
+  mapa?: DashboardMapLocation | null;
 }
 
 export interface DashboardAgent {
   codigo: string;
+  usuario?: string;
   nombre: string;
   estado: 'Disponible' | 'En servicio';
   zona: string;
   telefono: string;
+  email?: string;
+  mapa?: DashboardMapLocation | null;
 }
 
 export interface DashboardHistoryRow {

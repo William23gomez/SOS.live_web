@@ -1,7 +1,8 @@
 import { ChangeDetectorRef, Component, NgZone, OnDestroy, OnInit } from '@angular/core';
 import { DomSanitizer, SafeResourceUrl } from '@angular/platform-browser';
-import { ActivatedRoute, Router } from '@angular/router';
+import { NavigationEnd, Router } from '@angular/router';
 import { onAuthStateChanged, Unsubscribe, User } from 'firebase/auth';
+import { Subscription } from 'rxjs';
 
 import { AuthService } from '../../core/auth.service';
 import {
@@ -13,8 +14,35 @@ import {
   DashboardHistoryRow,
   DashboardNotification,
 } from '../../core/dashboard-data.service';
+import {
+  getMapQueryLabel,
+  OPERATIONAL_MAP_EMBED_URL,
+  projectMapLocation,
+  resolveAgentMapLocation,
+  resolveAlertMapLocation,
+  resolveCompanyMapLocation,
+} from '../../core/operational-map.util';
 import { OperationsService } from '../../core/operations.service';
 import { auth } from '../../core/firebase.config';
+
+type DashboardSection =
+  | 'overview'
+  | 'alerts'
+  | 'agents'
+  | 'history'
+  | 'company'
+  | 'billing'
+  | 'notifications';
+
+const SECTION_ROUTE_MAP: Record<DashboardSection, string> = {
+  overview: '/dashboard',
+  alerts: '/alertas',
+  agents: '/agentes',
+  history: '/historial',
+  company: '/perfil-empresa',
+  billing: '/pagos',
+  notifications: '/notificaciones',
+};
 
 @Component({
   selector: 'app-dashboard',
@@ -23,25 +51,7 @@ import { auth } from '../../core/firebase.config';
   styleUrl: './dashboard.css',
 })
 export class Dashboard implements OnInit, OnDestroy {
-  private readonly alertPinPositions = [
-    { top: '18%', left: '23%' },
-    { top: '56%', left: '54%' },
-    { top: '34%', left: '74%' },
-  ];
-  private readonly agentPinPositions = [
-    { top: '29%', left: '69%' },
-    { top: '64%', left: '77%' },
-    { top: '72%', left: '34%' },
-  ];
-
-  activeSection:
-    | 'overview'
-    | 'alerts'
-    | 'agents'
-    | 'history'
-    | 'company'
-    | 'billing'
-    | 'notifications' = 'overview';
+  activeSection: DashboardSection = 'overview';
 
   formData = {
     nombre: '',
@@ -65,6 +75,8 @@ export class Dashboard implements OnInit, OnDestroy {
 
   newAgentForm = {
     nombre: '',
+    usuario: '',
+    password: '',
     codigo: '',
     zona: '',
     telefono: '',
@@ -105,6 +117,7 @@ export class Dashboard implements OnInit, OnDestroy {
   private liveInterval?: ReturnType<typeof setInterval>;
   private operationsSyncInterval?: ReturnType<typeof setInterval>;
   private dashboardUnsubscribes: Unsubscribe[] = [];
+  private navigationSubscription?: Subscription;
 
   constructor(
     private readonly zone: NgZone,
@@ -113,17 +126,15 @@ export class Dashboard implements OnInit, OnDestroy {
     private readonly authService: AuthService,
     private readonly dashboardDataService: DashboardDataService,
     private readonly operationsService: OperationsService,
-    private readonly route: ActivatedRoute,
     private readonly router: Router
   ) {}
 
   ngOnInit() {
     this.startRealtimeFeed();
-    this.route.data.subscribe((data) => {
-      const section = data['section'];
-
-      if (section) {
-        this.activeSection = section;
+    this.syncActiveSectionFromUrl(this.router.url);
+    this.navigationSubscription = this.router.events.subscribe((event) => {
+      if (event instanceof NavigationEnd) {
+        this.syncActiveSectionFromUrl(event.urlAfterRedirects || event.url);
       }
     });
 
@@ -157,6 +168,7 @@ export class Dashboard implements OnInit, OnDestroy {
 
   ngOnDestroy() {
     this.unsubscribeAuth?.();
+    this.navigationSubscription?.unsubscribe();
     this.dashboardUnsubscribes.forEach((unsubscribe) => unsubscribe());
     if (this.liveInterval) {
       clearInterval(this.liveInterval);
@@ -228,17 +240,19 @@ export class Dashboard implements OnInit, OnDestroy {
       .join('');
   }
 
-  setActiveSection(
-    section:
-      | 'overview'
-      | 'alerts'
-      | 'agents'
-      | 'history'
-      | 'company'
-      | 'billing'
-      | 'notifications'
-  ) {
+  setActiveSection(section: DashboardSection) {
     this.activeSection = section;
+  }
+
+  navigateToSection(section: DashboardSection) {
+    const targetRoute = SECTION_ROUTE_MAP[section];
+
+    if (this.router.url === targetRoute) {
+      this.activeSection = section;
+      return;
+    }
+
+    void this.router.navigate([targetRoute]);
   }
 
   get filteredAlertsLabel() {
@@ -273,20 +287,37 @@ export class Dashboard implements OnInit, OnDestroy {
   }
 
   get mapQuery() {
-    return (
+    if (this.activeSection === 'agents') {
+      return getMapQueryLabel(
+        resolveAgentMapLocation(this.selectedAgent || this.agents[0]),
+        this.selectedAgent?.zona || this.agents[0]?.zona || this.companyData.direccion || 'Bogota Colombia'
+      );
+    }
+
+    if (this.activeSection === 'company') {
+      return getMapQueryLabel(
+        resolveCompanyMapLocation(this.companyData),
+        this.companyData.direccion || 'Bogota Colombia'
+      );
+    }
+
+    return getMapQueryLabel(
+      resolveAlertMapLocation(this.selectedAlert || this.recentAlerts[0]),
       this.selectedAlert?.ubicacion ||
-      this.recentAlerts[0]?.ubicacion ||
-      this.companyData.direccion ||
-      'Bogota Colombia'
+        this.recentAlerts[0]?.ubicacion ||
+        this.selectedAgent?.zona ||
+        this.agents[0]?.zona ||
+        this.companyData.direccion ||
+        'Bogota Colombia'
     );
   }
 
-  get realMapUrl(): SafeResourceUrl {
-    const query = encodeURIComponent(this.mapQuery);
+  get mapContextLabel() {
+    return this.mapQuery || 'Bogotá, Colombia';
+  }
 
-    return this.sanitizer.bypassSecurityTrustResourceUrl(
-      `https://www.google.com/maps?q=${query}&z=14&output=embed`
-    );
+  get realMapUrl(): SafeResourceUrl {
+    return this.sanitizer.bypassSecurityTrustResourceUrl(OPERATIONAL_MAP_EMBED_URL);
   }
 
   get externalMapUrl() {
@@ -299,31 +330,70 @@ export class Dashboard implements OnInit, OnDestroy {
   }
 
   get mapPins() {
-    const alertPins = this.recentAlerts.slice(0, 3).map((alert, index) => {
-      const position = this.alertPinPositions[index % this.alertPinPositions.length];
+    const prioritizedAlerts = this.selectedAlert
+      ? [this.selectedAlert, ...this.recentAlerts.filter((alert) => alert.id !== this.selectedAlert?.id)]
+      : this.recentAlerts;
+    const prioritizedAgents = this.selectedAgent
+      ? [this.selectedAgent, ...this.agents.filter((agent) => agent.codigo !== this.selectedAgent?.codigo)]
+      : this.agents;
 
-      return {
-        ...position,
-        tipo: 'alerta' as const,
-        icon: 'bi-exclamation-diamond-fill',
-        etiqueta: `${alert.tipo} - ${alert.ubicacion}`,
-        alertId: alert.id,
-      };
-    });
+    const alertPins = prioritizedAlerts
+      .slice(0, 4)
+      .map((alert, index) => {
+        const position = projectMapLocation(resolveAlertMapLocation(alert), index);
 
-    const agentPins = this.agents.slice(0, 3).map((agent, index) => {
-      const position = this.agentPinPositions[index % this.agentPinPositions.length];
+        if (!position) {
+          return null;
+        }
 
-      return {
-        ...position,
+        return {
+          ...position,
+          tipo: 'alerta' as const,
+          icon: 'bi-exclamation-diamond-fill',
+          etiqueta: `${alert.tipo} - ${alert.ubicacion}`,
+          alertId: alert.id,
+        };
+      })
+      .filter((pin): pin is NonNullable<typeof pin> => !!pin);
+
+    const agentPins = prioritizedAgents
+      .slice(0, 4)
+      .map((agent, index) => {
+        const position = projectMapLocation(resolveAgentMapLocation(agent), index + alertPins.length);
+
+        if (!position) {
+          return null;
+        }
+
+        return {
+          ...position,
+          tipo: 'cobertura' as const,
+          icon: 'bi-broadcast-pin',
+          etiqueta: `${agent.nombre} - ${agent.zona}`,
+          alertId: null,
+        };
+      })
+      .filter((pin): pin is NonNullable<typeof pin> => !!pin);
+
+    if (alertPins.length || agentPins.length) {
+      return [...alertPins, ...agentPins];
+    }
+
+    const companyPosition = projectMapLocation(resolveCompanyMapLocation(this.companyData));
+
+    if (!companyPosition || !this.companyData.direccion) {
+      return [];
+    }
+
+    return [
+      {
+        ...companyPosition,
         tipo: 'cobertura' as const,
-        icon: 'bi-broadcast-pin',
-        etiqueta: `${agent.nombre} - ${agent.zona}`,
+        icon: 'bi-building-fill',
+        etiqueta: `Sede - ${this.companyData.direccion}`,
         alertId: null,
-      };
-    });
-
-    return [...alertPins, ...agentPins];
+      },
+    ];
   }
 
   get availableAgents() {
@@ -332,7 +402,7 @@ export class Dashboard implements OnInit, OnDestroy {
     return this.agents.filter((agent) => {
       const matchesSearch =
         !search ||
-        [agent.nombre, agent.codigo, agent.zona, agent.estado].some((value) =>
+        [agent.nombre, agent.codigo, agent.usuario || '', agent.zona, agent.estado].some((value) =>
           value.toLowerCase().includes(search)
         );
 
@@ -342,6 +412,35 @@ export class Dashboard implements OnInit, OnDestroy {
 
   get selectedAgent() {
     return this.agents.find((agent) => agent.codigo === this.selectedAgentCode) || null;
+  }
+
+  get assignableAgents() {
+    return this.agents.filter((agent) => {
+      if (agent.estado === 'Disponible') {
+        return true;
+      }
+
+      return !!this.selectedAlert && this.selectedAlert.agenteAsignado === agent.nombre;
+    });
+  }
+
+  get canAssignSelectedAlert() {
+    return !!this.selectedAlert && !this.isSelectedAlertClosed;
+  }
+
+  get canFinalizeSelectedAlert() {
+    return !!this.selectedAlert && !this.isSelectedAlertClosed;
+  }
+
+  get canCancelSelectedAlert() {
+    return !!this.selectedAlert && !this.isSelectedAlertClosed;
+  }
+
+  get isSelectedAlertClosed() {
+    return (
+      this.selectedAlertServiceStatus === 'Finalizado' ||
+      this.selectedAlertServiceStatus === 'Cancelado'
+    );
   }
 
   get filteredHistoryRows() {
@@ -382,24 +481,39 @@ export class Dashboard implements OnInit, OnDestroy {
 
   selectAlert(alertId: string) {
     this.selectedAlertId = alertId;
+    this.syncSelectedAgentSelection();
   }
 
   focusAlertFromMap(alertId: string | null) {
     if (!alertId) {
-      this.setActiveSection('overview');
+      this.navigateToSection('overview');
       return;
     }
 
     this.selectedAlertId = alertId;
-    this.activeSection = 'alerts';
+    this.navigateToSection('alerts');
   }
 
   async assignSelectedAgent() {
     const alert = this.selectedAlert;
     const agent = this.selectedAgent;
 
+    if (
+      alert &&
+      (this.normalizeAlertStatus(alert.estado) === 'Finalizado' ||
+        this.normalizeAlertStatus(alert.estado) === 'Cancelado')
+    ) {
+      this.showFeedback('La alerta seleccionada ya no admite asignacion de agentes.', 'error');
+      return;
+    }
+
     if (!alert || !agent) {
       this.showFeedback('Selecciona una alerta y un agente para continuar.', 'error');
+      return;
+    }
+
+    if (agent.estado !== 'Disponible' && alert.agenteAsignado !== agent.nombre) {
+      this.showFeedback('El agente seleccionado no esta disponible para una nueva asignacion.', 'error');
       return;
     }
 
@@ -435,6 +549,11 @@ export class Dashboard implements OnInit, OnDestroy {
 
     if (this.normalizeAlertStatus(alert.estado) === 'Finalizado') {
       this.showFeedback('La alerta seleccionada ya estaba finalizada.', 'success');
+      return;
+    }
+
+    if (this.normalizeAlertStatus(alert.estado) === 'Cancelado') {
+      this.showFeedback('No puedes finalizar una alerta cancelada.', 'error');
       return;
     }
 
@@ -562,7 +681,7 @@ export class Dashboard implements OnInit, OnDestroy {
         this.selectedAlertId = result.id;
       }
 
-      this.activeSection = 'alerts';
+      this.navigateToSection('alerts');
       void this.syncOperationalData();
 
       this.newAlertForm = {
@@ -578,7 +697,7 @@ export class Dashboard implements OnInit, OnDestroy {
       if (syncedAlert) {
         this.applyAlerts(this.mergeAlert(syncedAlert));
         this.selectedAlertId = syncedAlert.id;
-        this.activeSection = 'alerts';
+        this.navigateToSection('alerts');
         this.newAlertForm = {
           tipo: 'Panico',
           ubicacion: '',
@@ -595,15 +714,28 @@ export class Dashboard implements OnInit, OnDestroy {
   }
 
   async createAgent() {
-    const { nombre, codigo, zona, telefono } = this.newAgentForm;
+    const { nombre, usuario, password, codigo, zona, telefono } = this.newAgentForm;
 
-    if (!nombre || !codigo || !zona || !telefono) {
-      this.showFeedback('Completa nombre, codigo, zona y telefono del agente.', 'error');
+    if (!nombre || !usuario || !password || !codigo || !zona || !telefono) {
+      this.showFeedback('Completa todos los campos del agente.', 'error');
+      return;
+    }
+
+    if (!/^[a-zA-Z0-9._-]{4,}$/.test(usuario.trim())) {
+      this.showFeedback(
+        'El usuario del agente debe tener minimo 4 caracteres y solo puede usar letras, numeros, punto, guion o guion bajo.',
+        'error'
+      );
       return;
     }
 
     if (!/^\d+$/.test(telefono)) {
       this.showFeedback('El telefono del agente solo puede contener numeros.', 'error');
+      return;
+    }
+
+    if (password.length < 6) {
+      this.showFeedback('La contraseña debe tener al menos 6 caracteres.', 'error');
       return;
     }
 
@@ -613,6 +745,8 @@ export class Dashboard implements OnInit, OnDestroy {
     try {
       const payload = {
         nombre,
+        usuario,
+        password,
         codigo,
         zona,
         telefono,
@@ -634,11 +768,16 @@ export class Dashboard implements OnInit, OnDestroy {
 
       this.newAgentForm = {
         nombre: '',
+        usuario: '',
+        password: '',
         codigo: '',
         zona: '',
         telefono: '',
       };
-      this.showFeedback('Agente creado correctamente y guardado en Firebase.', 'success');
+      this.showFeedback(
+        'Agente creado correctamente. Comparte con el agente su codigo, usuario y contraseña.',
+        'success'
+      );
     } catch (error) {
       const syncedAgent = await this.waitForAgentAppearance(codigo);
 
@@ -647,11 +786,16 @@ export class Dashboard implements OnInit, OnDestroy {
         this.selectedAgentCode = syncedAgent.codigo;
         this.newAgentForm = {
           nombre: '',
+          usuario: '',
+          password: '',
           codigo: '',
           zona: '',
           telefono: '',
         };
-        this.showFeedback('Agente creado correctamente y sincronizado desde la base de datos.', 'success');
+        this.showFeedback(
+          'Agente creado correctamente. Comparte con el agente su codigo, usuario y contraseña.',
+          'success'
+        );
       } else {
         this.showFeedback(this.operationsService.translateError(error), 'error');
       }
@@ -1028,6 +1172,8 @@ export class Dashboard implements OnInit, OnDestroy {
       this.selectedAlertId = this.recentAlerts[0]?.id || '';
     }
 
+    this.syncSelectedAgentSelection();
+
     this.cdr.detectChanges();
   }
 
@@ -1037,6 +1183,8 @@ export class Dashboard implements OnInit, OnDestroy {
     if (!this.agents.some((agent) => agent.codigo === this.selectedAgentCode)) {
       this.selectedAgentCode = this.agents[0]?.codigo || '';
     }
+
+    this.syncSelectedAgentSelection();
 
     this.cdr.detectChanges();
   }
@@ -1103,5 +1251,38 @@ export class Dashboard implements OnInit, OnDestroy {
       notification,
       ...this.notifications.filter((item) => item.id !== notification.id),
     ];
+  }
+
+  private syncSelectedAgentSelection() {
+    if (!this.selectedAlert) {
+      if (!this.agents.some((agent) => agent.codigo === this.selectedAgentCode)) {
+        this.selectedAgentCode = this.agents[0]?.codigo || '';
+      }
+      return;
+    }
+
+    const assignedAgent = this.agents.find(
+      (agent) => agent.nombre === this.selectedAlert?.agenteAsignado
+    );
+
+    if (assignedAgent) {
+      this.selectedAgentCode = assignedAgent.codigo;
+      return;
+    }
+
+    const assignableCodes = new Set(this.assignableAgents.map((agent) => agent.codigo));
+
+    if (!assignableCodes.has(this.selectedAgentCode)) {
+      this.selectedAgentCode = this.assignableAgents[0]?.codigo || '';
+    }
+  }
+
+  private syncActiveSectionFromUrl(url: string) {
+    const normalizedUrl = (url || '').split('?')[0].split('#')[0].replace(/\/+$/, '') || '/dashboard';
+    const matchedSection = (Object.entries(SECTION_ROUTE_MAP).find(
+      ([, route]) => route === normalizedUrl
+    )?.[0] || 'overview') as DashboardSection;
+
+    this.activeSection = matchedSection;
   }
 }

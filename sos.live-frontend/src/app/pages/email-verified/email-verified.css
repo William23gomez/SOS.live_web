@@ -1,0 +1,160 @@
+.verification-section {
+  position: relative;
+  min-height: 100vh;
+  overflow: hidden;
+  background:
+    radial-gradient(circle at top left, rgba(212, 175, 55, 0.16), transparent 32%),
+    linear-gradient(135deg, #03111d, #0d2436 55%, #12344b);
+}
+
+.overlay {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(180deg, rgba(3, 17, 29, 0.35), rgba(3, 17, 29, 0.88));
+}
+
+.back-circle {
+  position: absolute;
+  top: 24px;
+  left: 24px;
+  z-index: 3;
+  width: 46px;
+  height: 46px;
+  border-radius: 999px;
+  display: grid;
+  place-items: center;
+  color: #fff;
+  text-decoration: none;
+  background: rgba(255, 255, 255, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.14);
+}
+
+.left-content,
+.verification-card {
+  position: relative;
+  z-index: 1;
+}
+
+.left-content {
+  padding: 32px;
+}
+
+.verification-card {
+  width: min(100%, 520px);
+  border-radius: 28px;
+  padding: 32px 28px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: rgba(8, 21, 35, 0.82);
+  backdrop-filter: blur(18px);
+  box-shadow: 0 20px 45px rgba(0, 0, 0, 0.28);
+}
+
+.verification-success-card {
+  position: relative;
+  z-index: 1;
+  margin: 0 auto;
+  width: min(100%, 760px);
+  border-radius: 32px;
+  padding: 48px 32px;
+  text-align: center;
+  color: #ffffff;
+  background: linear-gradient(145deg, rgba(26, 106, 218, 0.95), rgba(17, 62, 173, 0.95));
+  border: 1px solid rgba(255, 255, 255, 0.22);
+  box-shadow: 0 24px 60px rgba(7, 21, 41, 0.38);
+}
+
+.success-icon {
+  font-size: 4rem;
+  line-height: 1;
+  margin-bottom: 18px;
+}
+
+.success-kicker {
+  margin: 0 0 8px;
+  font-size: 0.9rem;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  opacity: 0.84;
+}
+
+.success-title {
+  margin: 0 0 18px;
+  font-size: clamp(2rem, 5vw, 3.4rem);
+  font-weight: 800;
+}
+
+.success-copy {
+  max-width: 540px;
+  margin: 0 auto 24px;
+  font-size: 1.05rem;
+  line-height: 1.75;
+  color: rgba(244, 248, 255, 0.94);
+}
+
+.success-banner {
+  max-width: 540px;
+  margin: 0 auto 20px;
+  padding: 16px 18px;
+  border-radius: 18px;
+  background: rgba(255, 255, 255, 0.18);
+  border: 1px solid rgba(255, 255, 255, 0.18);
+}
+
+.success-button {
+  min-width: 220px;
+  padding: 14px 28px;
+  border-radius: 999px;
+  font-weight: 700;
+  color: #1143a5;
+}
+
+.status-banner {
+  margin-bottom: 18px;
+  padding: 14px 16px;
+  border-radius: 16px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.status-success {
+  background: rgba(45, 166, 106, 0.16);
+  color: #dbffec;
+}
+
+.status-error {
+  background: rgba(180, 53, 53, 0.16);
+  color: #ffe1e1;
+}
+
+.helper-text {
+  color: rgba(233, 239, 246, 0.84);
+  line-height: 1.7;
+  margin-bottom: 20px;
+}
+
+.helper-text-accent {
+  color: #ffe08a;
+}
+
+.btn-gold {
+  background: linear-gradient(135deg, #d4af37, #f2d36b);
+  color: #081523;
+  border: none;
+  font-weight: 700;
+  border-radius: 999px;
+}
+
+@media (max-width: 991px) {
+  .left-content {
+    text-align: center;
+    padding: 100px 24px 24px;
+  }
+
+  .verification-card {
+    margin-bottom: 32px;
+  }
+
+  .verification-success-card {
+    margin-top: 100px;
+    padding: 40px 24px;
+  }
+}

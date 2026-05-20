@@ -1,77 +1,204 @@
 <section class="register-section">
-    <a routerLink="/home" class="back-circle">
-      <i class="bi bi-arrow-left"></i>
-    </a>
+  <a routerLink="/home" class="back-circle">
+    <i class="bi bi-arrow-left"></i>
+  </a>
 
-    <div class="overlay"></div>
+  <div class="overlay"></div>
 
-    <div class="container h-100">
-      <div class="row align-items-center h-100">
-        <div class="col-lg-6 d-flex justify-content-center">
-          <div class="register-card">
-            <h2 class="fw-bold text-white mb-4">Crear una cuenta</h2>
+  <div class="container h-100">
+    <div class="row align-items-center h-100">
+      <div class="col-lg-6 d-flex justify-content-center">
+        <div class="register-card" [class.register-card-admin]="accessMode === 'admin'">
+          <p class="access-kicker">Tipo de acceso</p>
+          <div class="access-toggle mb-4">
+            <button
+              type="button"
+              class="access-option"
+              [class.access-option-active]="accessMode === 'empresa'"
+              (click)="setAccessMode('empresa')">
+              Empresa
+            </button>
+            <button
+              type="button"
+              class="access-option"
+              [class.access-option-active]="accessMode === 'admin'"
+              (click)="setAccessMode('admin')">
+              Admin
+            </button>
+          </div>
 
-            <div
-              *ngIf="feedbackMessage"
-              class="status-banner"
-              [class.status-error]="feedbackType === 'error'"
-              [class.status-success]="feedbackType === 'success'">
-              {{ feedbackMessage }}
+          <div class="admin-register-banner" *ngIf="accessMode === 'admin'">
+            <div class="admin-register-icon">
+              <i class="bi bi-shield-lock-fill"></i>
+            </div>
+            <div>
+              <span class="admin-register-label">Ruta restringida</span>
+              <strong>Portal Administrativo</strong>
+            </div>
+          </div>
+
+          <h2 class="fw-bold text-white mb-4">
+            {{ accessMode === 'admin' ? 'Portal Administrativo' : 'Crear una cuenta' }}
+          </h2>
+
+          <div
+            *ngIf="feedbackMessage"
+            class="status-banner"
+            [class.status-error]="feedbackType === 'error'"
+            [class.status-success]="feedbackType === 'success'">
+            {{ feedbackMessage }}
+          </div>
+
+          <p class="loading-hint" *ngIf="isSubmitting">
+            {{
+              isCheckingAvailability
+                ? 'Estamos revisando si el nombre, correo, telefono o NIT ya existen.'
+                : 'Estamos creando la cuenta y preparando el correo de verificacion.'
+            }}
+          </p>
+
+          <form
+            class="register-form"
+            *ngIf="accessMode === 'empresa'; else adminAccessInfo"
+            (ngSubmit)="onSubmit()">
+            <div class="input-group-custom">
+              <i class="bi bi-person-fill"></i>
+              <input
+                id="nombre"
+                name="nombre"
+                type="text"
+                placeholder="Nombre empresa"
+                [(ngModel)]="formData.nombre"
+                required>
             </div>
 
-            <form class="register-form" (ngSubmit)="onSubmit()">
-              <div class="input-group-custom">
-                <i class="bi bi-person-fill"></i>
-                <input id="nombre" name="nombre" type="text" placeholder="Nombre completo" [(ngModel)]="formData.nombre" required>
-              </div>
+            <div class="input-group-custom">
+              <i class="bi bi-envelope-fill"></i>
+              <input
+                id="email"
+                name="email"
+                type="email"
+                placeholder="Correo"
+                [(ngModel)]="formData.email"
+                required>
+            </div>
 
-              <div class="input-group-custom">
-                <i class="bi bi-envelope-fill"></i>
-                <input id="email" name="email" type="email" placeholder="Correo" [(ngModel)]="formData.email" required>
-              </div>
+            <div class="input-group-custom">
+              <i class="bi bi-telephone-fill"></i>
+              <input
+                id="telefono"
+                name="telefono"
+                type="tel"
+                inputmode="numeric"
+                pattern="[0-9]*"
+                placeholder="Tel&eacute;fono"
+                [(ngModel)]="formData.telefono"
+                (input)="onlyNumbers('telefono')"
+                required>
+            </div>
 
-              <div class="input-group-custom">
-                <i class="bi bi-telephone-fill"></i>
-                <input id="telefono" name="telefono" type="tel" inputmode="numeric" pattern="[0-9]*" placeholder="Telefono" [(ngModel)]="formData.telefono" (input)="onlyNumbers('telefono')" required>
-              </div>
+            <div class="input-group-custom">
+              <i class="bi bi-credit-card-fill"></i>
+              <input
+                id="nit"
+                name="nit"
+                type="text"
+                inputmode="numeric"
+                pattern="[0-9]*"
+                placeholder="NIT"
+                [(ngModel)]="formData.nit"
+                (input)="onlyNumbers('nit')"
+                required>
+            </div>
 
-              <div class="input-group-custom">
-                <i class="bi bi-credit-card-fill"></i>
-                <input id="nit" name="nit" type="text" inputmode="numeric" pattern="[0-9]*" placeholder="NIT" [(ngModel)]="formData.nit" (input)="onlyNumbers('nit')" required>
-              </div>
-
-              <div class="input-group-custom">
-                <i class="bi bi-lock-fill"></i>
-                <input id="password" name="password" type="password" placeholder="Contrasena" [(ngModel)]="formData.password" required>
-              </div>
-
-              <div class="form-check text-white my-3">
-                <input class="form-check-input" type="checkbox" id="terms" name="terms" [(ngModel)]="formData.terms" required>
-                <label class="form-check-label small" for="terms">
-                  Al registrarte aceptas <span class="gold-text">terminos y condiciones</span>
-                </label>
-              </div>
-
-              <button type="submit" class="btn btn-gold w-100" [disabled]="isSubmitting">
-                {{ isSubmitting ? 'Creando cuenta...' : 'Registrarse' }}
-              </button>
-
+            <div class="input-group-custom password-field">
+              <i class="bi bi-lock-fill"></i>
+              <input
+                id="password"
+                name="password"
+                [type]="isPasswordVisible ? 'text' : 'password'"
+                class="password-input"
+                placeholder="Contrase&ntilde;a"
+                autocomplete="new-password"
+                [(ngModel)]="formData.password"
+                required>
               <button
-                *ngIf="registrationCompleted"
                 type="button"
-                class="btn btn-outline-light w-100 mt-3"
-                (click)="goToLogin()">
-                Ir a iniciar sesion
+                class="password-toggle"
+                aria-label="Mostrar u ocultar contrase&ntilde;a"
+                (click)="togglePasswordVisibility()">
+                <i
+                  class="bi"
+                  [class.bi-eye-fill]="!isPasswordVisible"
+                  [class.bi-eye-slash-fill]="isPasswordVisible"></i>
               </button>
-            </form>
-          </div>
-        </div>
+            </div>
 
-        <div class="col-lg-6 text-white text-center right-content">
-          <h3 class="fw-bold mb-3">Bienvenido a SOS.LIVE</h3>
-          <p class="mb-4">Si ya tienes una cuenta, inicia sesion aqui.</p>
-          <a routerLink="/login" class="btn btn-gold px-4">Iniciar sesion</a>
+            <div class="form-check text-white my-3">
+              <input
+                class="form-check-input"
+                type="checkbox"
+                id="terms"
+                name="terms"
+                [(ngModel)]="formData.terms"
+                required>
+              <label class="form-check-label small" for="terms">
+                Al registrarte aceptas <span class="gold-text">t&eacute;rminos y condiciones</span>
+              </label>
+            </div>
+
+            <button type="submit" class="btn btn-gold w-100" [disabled]="isSubmitting">
+              {{ submitLabel }}
+            </button>
+
+            <button
+              *ngIf="registrationCompleted"
+              type="button"
+              class="btn btn-outline-light w-100 mt-3"
+              (click)="goToLogin()">
+              Ir a iniciar sesi&oacute;n
+            </button>
+          </form>
+
+          <ng-template #adminAccessInfo>
+            <div class="admin-access-card">
+              <strong>Las cuentas admin no se crean aqu&iacute;.</strong>
+              <p>
+                El panel administrativo tiene un acceso separado. Usa las credenciales
+                autorizadas de administrador para entrar.
+              </p>
+              <button type="button" class="btn btn-gold w-100" (click)="goToAdminLogin()">
+                Ir a acceso admin
+              </button>
+            </div>
+          </ng-template>
         </div>
       </div>
+
+      <div
+        class="col-lg-6 text-white text-center right-content"
+        [class.right-content-admin]="accessMode === 'admin'">
+        <div *ngIf="accessMode === 'admin'" class="portal-register-badge">
+          <span class="portal-register-label">Acceso Interno</span>
+          <strong>Administraci&oacute;n central de SOS.LIVE</strong>
+          <p>
+            Las empresas no se registran ni inician sesi&oacute;n aqu&iacute;. Esta entrada es
+            exclusiva para administradores autorizados.
+          </p>
+        </div>
+
+        <h3 class="fw-bold mb-3">Bienvenido a SOS.LIVE</h3>
+        <p class="mb-4">
+          {{
+            accessMode === 'admin'
+              ? 'Si ya cuentas con credenciales administrativas, entra por la ruta segura.'
+              : 'Si ya tienes una cuenta, inicia sesi\u00f3n aqu\u00ed.'
+          }}
+        </p>
+        <a routerLink="/login" [queryParams]="{ mode: accessMode }" class="btn btn-gold px-4">
+          {{ accessMode === 'admin' ? 'Acceso admin' : 'Iniciar sesi\u00f3n' }}
+        </a>
+      </div>
     </div>
-  </section>
+  </div>
+</section>

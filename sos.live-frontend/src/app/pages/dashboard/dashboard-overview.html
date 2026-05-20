@@ -64,36 +64,6 @@
     </article>
 
     <div class="side-panels">
-      <article class="panel-card security-panel">
-        <div class="panel-heading">
-          <div>
-            <p class="panel-kicker">Seguridad</p>
-            <h2>Estado de la cuenta</h2>
-          </div>
-        </div>
-
-        <p class="info-label">Correo actual</p>
-        <p class="info-value">{{ vm.formData.email }}</p>
-
-        <span class="verification-pill" [class.verification-pill-ok]="vm.isEmailVerified" [class.verification-pill-warn]="!vm.isEmailVerified">
-          {{ vm.isEmailVerified ? 'Correo verificado' : 'Correo pendiente de verificacion' }}
-        </span>
-
-        <button
-          *ngIf="!vm.isEmailVerified"
-          type="button"
-          class="btn btn-gold w-100 mt-3"
-          [disabled]="vm.isResendingVerification"
-          (click)="vm.reenviarVerificacion()">
-          {{ vm.isResendingVerification ? 'Enviando...' : 'Reenviar verificacion' }}
-        </button>
-
-        <div class="security-note">
-          <i class="bi bi-shield-check"></i>
-          Mantener tu correo verificado mejora la recuperacion de acceso y la trazabilidad.
-        </div>
-      </article>
-
       <article class="panel-card">
         <div class="panel-heading">
           <div>

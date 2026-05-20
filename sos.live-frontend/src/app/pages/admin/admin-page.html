@@ -33,7 +33,7 @@
       </nav>
 
       <button type="button" class="btn btn-outline-light w-100 mt-auto" (click)="cerrarSesion()">
-        Cerrar sesion
+        Cerrar sesión
       </button>
     </aside>
 
@@ -41,9 +41,9 @@
       <header class="admin-header">
         <div>
           <p class="admin-kicker">Acceso administrativo</p>
-          <h1>Centro de supervision SOS.LIVE</h1>
+          <h1>Centro de supervisión SOS.LIVE</h1>
           <p class="admin-subtitle">
-            Esta vista queda reservada para el equipo admin y concentra empresas, pagos, metricas globales y seguimiento del sistema.
+            Esta vista queda reservada para el equipo admin y concentra empresas, pagos, métricas globales y seguimiento del sistema.
           </p>
         </div>
 
@@ -84,7 +84,7 @@
               <div class="admin-panel-head">
                 <div>
                   <p class="admin-kicker">Empresas registradas</p>
-                  <h2>Supervision y aprobacion</h2>
+                  <h2>Supervisión y aprobación</h2>
                 </div>
               </div>
 
@@ -95,25 +95,31 @@
                   <span>Estado</span>
                   <span>NIT</span>
                 </div>
-                <div class="admin-table-row" *ngFor="let company of companies">
-                  <span>
-                    <strong>{{ company.nombre }}</strong><br>
-                    <small>{{ company.uid }}</small>
+                <div class="admin-table-row admin-company-row" *ngFor="let company of visibleCompanies">
+                  <span class="admin-company-stack">
+                    <strong>{{ company.nombre }}</strong>
+                    <small>ID {{ company.uid }}</small>
                   </span>
-                  <span>
-                    {{ company.email }}<br>
-                    <small>{{ company.telefono }}</small>
+                  <span class="admin-company-stack">
+                    <strong>{{ company.email || 'Sin correo' }}</strong>
+                    <small>{{ company.telefono || 'Sin telefono' }}</small>
                   </span>
-                  <span class="admin-pill" [class.admin-pill-ok]="company.estado === 'Aprobada'" [class.admin-pill-warn]="company.estado !== 'Aprobada'">
-                    {{ company.estado }}
+                  <span class="admin-company-stack">
+                    <span class="admin-pill" [class.admin-pill-ok]="company.estado === 'Aprobada'" [class.admin-pill-warn]="company.estado !== 'Aprobada'">
+                      {{ company.estado }}
+                    </span>
+                    <small>{{ company.createdAt ? (company.createdAt | date:'mediumDate') : 'Sin fecha' }}</small>
                   </span>
-                  <span>{{ company.nit }}</span>
+                  <span class="admin-company-stack">
+                    <strong>{{ company.nit || 'Sin NIT' }}</strong>
+                    <small>Registro empresarial</small>
+                  </span>
                 </div>
-                <div class="admin-empty" *ngIf="!isLoading && !companies.length">
-                  No hay empresas registradas todavia.
+                <div class="admin-empty" *ngIf="!isLoading && !visibleCompanies.length">
+                  No hay empresas registradas todavía.
                 </div>
                 <div class="admin-empty" *ngIf="isLoading">
-                  Cargando supervision de empresas...
+                  Cargando supervisión de empresas...
                 </div>
               </div>
             </article>
@@ -122,7 +128,7 @@
               <div class="admin-panel-head">
                 <div>
                   <p class="admin-kicker">Control financiero</p>
-                  <h2>Pagos y conciliacion</h2>
+                  <h2>Pagos y conciliación</h2>
                 </div>
               </div>
 
@@ -140,7 +146,7 @@
               <div class="admin-table admin-table-payments">
                 <div class="admin-table-head">
                   <span>Fecha</span>
-                  <span>Metodo</span>
+                  <span>Método</span>
                   <span>Monto</span>
                   <span>Estado</span>
                 </div>
@@ -159,7 +165,7 @@
 
         <app-admin-companies
           *ngSwitchCase="'companies'"
-          [companies]="companies"
+          [companies]="visibleCompanies"
           [isLoading]="isLoading">
         </app-admin-companies>
 
@@ -174,7 +180,7 @@
           <div class="admin-table admin-table-payments">
             <div class="admin-table-head">
               <span>Fecha</span>
-              <span>Metodo</span>
+              <span>Método</span>
               <span>Monto</span>
               <span>Estado</span>
             </div>
@@ -187,7 +193,7 @@
               </span>
             </div>
             <div class="admin-empty" *ngIf="!isLoading && !payments.length">
-              No hay pagos registrados todavia.
+              No hay pagos registrados todavía.
             </div>
           </div>
         </section>
@@ -196,7 +202,7 @@
           <div class="admin-panel-head">
             <div>
               <p class="admin-kicker">Reportes</p>
-              <h2>Resumen rapido del sistema</h2>
+              <h2>Resumen rápido del sistema</h2>
             </div>
           </div>
 

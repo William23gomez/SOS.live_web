@@ -5,11 +5,12 @@ const adminRoutes = require('./admin.routes');
 const operationsRoutes = require('./operations.routes');
 
 const router = express.Router();
+const healthPayload = {
+  message: 'SOS Live funcionando',
+};
 
 router.get('/health', (req, res) => {
-  res.status(200).json({
-    message: 'Backend SOS Live funcionando',
-  });
+  res.status(200).json(healthPayload);
 });
 
 router.use('/auth', authRoutes);

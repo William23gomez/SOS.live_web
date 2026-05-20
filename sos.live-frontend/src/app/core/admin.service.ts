@@ -2,6 +2,7 @@ import { Injectable } from '@angular/core';
 import { HttpClient, HttpErrorResponse, HttpHeaders } from '@angular/common/http';
 import { firstValueFrom } from 'rxjs';
 
+import { API_BASE_URL } from './api.config';
 import { AuthService } from './auth.service';
 
 export interface AdminCompany {
@@ -32,7 +33,7 @@ export interface AdminOverview {
 
 @Injectable({ providedIn: 'root' })
 export class AdminService {
-  private readonly apiUrl = 'http://localhost:3000/api/admin';
+  private readonly apiUrl = `${API_BASE_URL}/admin`;
 
   constructor(
     private readonly http: HttpClient,

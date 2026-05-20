@@ -1,11 +1,14 @@
-const { db } = require('../config/firebase');
+const { auth, db } = require('../config/firebase');
 const authService = require('./auth.service');
+const { geocodeLocation } = require('./location.service');
 
 const ALERTS_COLLECTION = 'dashboard_alerts';
+const MOBILE_NOTICES_COLLECTION = 'notices';
 const NOTIFICATIONS_COLLECTION = 'dashboard_notifications';
 const AGENTS_COLLECTION = 'dashboard_agents';
 const AGENTS_MIRROR_COLLECTION = 'Agentes';
 const HISTORY_COLLECTION = 'dashboard_history';
+const USERS_COLLECTION = 'users';
 
 const sortByRecent = (items) => {
   return [...items].sort((first, second) => {
@@ -25,7 +28,101 @@ const buildDateLabel = () => {
   });
 };
 
+const buildDateLabelFromValue = (value) => {
+  const resolvedDate = resolveDateValue(value);
+
+  if (!resolvedDate) {
+    return buildDateLabel();
+  }
+
+  return resolvedDate.toLocaleTimeString('es-CO', {
+    hour: '2-digit',
+    minute: '2-digit',
+  });
+};
+
 const buildRelativeLabel = () => 'Hace unos segundos';
+
+const normalizeAgentCode = (value) =>
+  String(value || '')
+    .trim()
+    .toUpperCase();
+
+const normalizeAgentUsername = (value) =>
+  String(value || '')
+    .trim()
+    .toLowerCase();
+
+const buildAgentInternalEmail = (codigo, usuario) => {
+  const seed = `${codigo}_${usuario}`
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, '_')
+    .replace(/^_+|_+$/g, '');
+
+  return `${seed || `agent_${Date.now()}`}@sos.live`;
+};
+
+const resolveDateValue = (value) => {
+  if (!value) {
+    return null;
+  }
+
+  if (typeof value.toDate === 'function') {
+    const timestampDate = value.toDate();
+    return Number.isNaN(timestampDate.getTime()) ? null : timestampDate;
+  }
+
+  const parsedDate = new Date(value);
+  return Number.isNaN(parsedDate.getTime()) ? null : parsedDate;
+};
+
+const formatMobileLocation = (notice) => {
+  const exactAddress = String(
+    notice?.direccionExacta || notice?.ubicacion?.direccionExacta || ''
+  ).trim();
+
+  if (exactAddress) {
+    return exactAddress;
+  }
+
+  const lat = Number(notice?.ubicacion?.lat);
+  const lng = Number(notice?.ubicacion?.lng);
+
+  if (!Number.isFinite(lat) || !Number.isFinite(lng)) {
+    return 'Ubicacion compartida desde SOS movil';
+  }
+
+  return `Lat ${lat.toFixed(5)}, Lng ${lng.toFixed(5)}`;
+};
+
+const buildMobileMapLocation = (location) => {
+  const lat = Number(location?.lat);
+  const lng = Number(location?.lng);
+
+  if (!Number.isFinite(lat) || !Number.isFinite(lng)) {
+    return null;
+  }
+
+  return {
+    lat,
+    lng,
+    label: 'Ubicacion SOS movil',
+    query: `${lat},${lng}`,
+    source: 'geocoded',
+  };
+};
+
+const normalizeAlertStatus = (status) => {
+  if (status === 'Nueva') {
+    return 'En proceso';
+  }
+
+  if (status === 'Asignada') {
+    return 'Asignado';
+  }
+
+  return status;
+};
 
 const buildHistoryDuration = (createdAt, finishedAt) => {
   if (!createdAt || !finishedAt) {
@@ -55,8 +152,79 @@ const buildHistoryDuration = (createdAt, finishedAt) => {
   return `${hours} h ${minutes} min`;
 };
 
+const buildMobileAlertFromNotice = (noticeId, notice, userName) => {
+  const createdAt = resolveDateValue(notice.timestamp)?.toISOString() || new Date().toISOString();
+  const descripcion =
+    typeof notice.mensaje === 'string' && notice.mensaje.trim()
+      ? notice.mensaje.trim()
+      : 'Alerta SOS creada desde la app movil.';
+
+  return {
+    id: noticeId,
+    usuario: userName || notice.creadoPor || 'Usuario movil SOS',
+    tipo: 'SOS movil',
+    ubicacion: formatMobileLocation(notice),
+    hora: buildDateLabelFromValue(notice.timestamp),
+    prioridad: 'Alta',
+    estado: 'En proceso',
+    agenteAsignado: 'Sin asignar',
+    descripcion,
+    mapa: buildMobileMapLocation(notice.ubicacion),
+    createdAt,
+    updatedAt: createdAt,
+    createdBy: notice.creadoPor || null,
+    source: 'mobile_notice',
+    sourceNoticeId: noticeId,
+  };
+};
+
+const listMobileSosAlerts = async () => {
+  const snapshot = await db.collection(MOBILE_NOTICES_COLLECTION).where('tipo', '==', 'sos').get();
+
+  if (snapshot.empty) {
+    return [];
+  }
+
+  const creatorIds = [
+    ...new Set(
+      snapshot.docs
+        .map((doc) => doc.data()?.creadoPor)
+        .filter((value) => typeof value === 'string' && value.trim())
+    ),
+  ];
+
+  const creatorDocs = await Promise.all(
+    creatorIds.map(async (creatorId) => {
+      try {
+        const userDoc = await db.collection(USERS_COLLECTION).doc(creatorId).get();
+        return [creatorId, userDoc.exists ? userDoc.data() : null];
+      } catch (error) {
+        return [creatorId, null];
+      }
+    })
+  );
+
+  const usersById = new Map(creatorDocs);
+
+  return snapshot.docs.map((doc) => {
+    const notice = doc.data() || {};
+    const userData = usersById.get(notice.creadoPor) || {};
+    const userName =
+      typeof userData.nombre === 'string' && userData.nombre.trim()
+        ? userData.nombre.trim()
+        : typeof userData.email === 'string' && userData.email.trim()
+          ? userData.email.trim()
+          : '';
+
+    return buildMobileAlertFromNotice(doc.id, notice, userName);
+  });
+};
+
 const createAlert = async (userId, payload) => {
-  const { tipo, ubicacion, prioridad, descripcion } = payload;
+  const tipo = String(payload.tipo || '').trim();
+  const ubicacion = String(payload.ubicacion || '').trim();
+  const prioridad = String(payload.prioridad || '').trim();
+  const descripcion = String(payload.descripcion || '').trim();
 
   if (!tipo || !ubicacion || !prioridad || !descripcion) {
     const error = new Error('Completa tipo, ubicacion, prioridad y descripcion de la alerta.');
@@ -67,6 +235,7 @@ const createAlert = async (userId, payload) => {
   const profile = await authService.getProfile(userId);
   const alertId = `ALT-${Date.now()}`;
   const notificationId = `NOT-${Date.now()}`;
+  const mapa = await geocodeLocation(ubicacion, { type: 'address' });
 
   const alert = {
     id: alertId,
@@ -78,6 +247,7 @@ const createAlert = async (userId, payload) => {
     estado: 'En proceso',
     agenteAsignado: 'Sin asignar',
     descripcion,
+    mapa,
     createdAt: new Date().toISOString(),
     createdBy: userId,
   };
@@ -102,8 +272,19 @@ const createAlert = async (userId, payload) => {
 };
 
 const listAlerts = async () => {
-  const snapshot = await db.collection(ALERTS_COLLECTION).get();
-  return sortByRecent(snapshot.docs.map((doc) => doc.data()));
+  const [dashboardSnapshot, mobileAlerts] = await Promise.all([
+    db.collection(ALERTS_COLLECTION).get(),
+    listMobileSosAlerts(),
+  ]);
+
+  const alertsById = new Map(mobileAlerts.map((alert) => [alert.id, alert]));
+
+  dashboardSnapshot.docs.forEach((doc) => {
+    const alert = doc.data();
+    alertsById.set(alert.id || doc.id, alert);
+  });
+
+  return sortByRecent(Array.from(alertsById.values()));
 };
 
 const listAgents = async () => {
@@ -114,6 +295,180 @@ const listAgents = async () => {
 const listNotifications = async () => {
   const snapshot = await db.collection(NOTIFICATIONS_COLLECTION).get();
   return sortByRecent(snapshot.docs.map((doc) => doc.data()));
+};
+
+const createAgent = async (userId, payload) => {
+  const nombre = String(payload.nombre || '').trim();
+  const usuario = normalizeAgentUsername(payload.usuario);
+  const password = String(payload.password || '').trim();
+  const zona = String(payload.zona || '').trim();
+  const telefono = String(payload.telefono || '').trim();
+  const codigo = normalizeAgentCode(payload.codigo);
+  const email = payload.email;
+
+  if (!nombre || !usuario || !password || !codigo || !zona || !telefono) {
+    const error = new Error('Completa nombre, usuario, contraseña, codigo, zona y telefono.');
+    error.statusCode = 400;
+    throw error;
+  }
+
+  if (!/^[a-z0-9._-]{4,}$/.test(usuario)) {
+    const error = new Error(
+      'El usuario del agente debe tener minimo 4 caracteres y solo puede usar letras, numeros, punto, guion o guion bajo.'
+    );
+    error.statusCode = 400;
+    throw error;
+  }
+
+  if (!/^\d+$/.test(telefono)) {
+    const error = new Error('El telefono del agente solo puede contener numeros.');
+    error.statusCode = 400;
+    throw error;
+  }
+
+  if (password.length < 6) {
+    const error = new Error('La contraseña del agente debe tener al menos 6 caracteres.');
+    error.statusCode = 400;
+    throw error;
+  }
+
+  const agentCodigo = codigo;
+  const existingAgentDoc = await db.collection(AGENTS_COLLECTION).doc(agentCodigo).get();
+
+  if (existingAgentDoc.exists) {
+    const error = new Error('Ya existe un agente registrado con ese codigo.');
+    error.statusCode = 409;
+    throw error;
+  }
+
+  const agentEmail = email?.trim().toLowerCase() || buildAgentInternalEmail(agentCodigo, usuario);
+  const mapa = await geocodeLocation(zona, { type: 'zone' });
+
+  let userRecord;
+  try {
+    userRecord = await auth.createUser({
+      email: agentEmail,
+      password,
+      displayName: nombre,
+      emailVerified: true,
+    });
+
+    const now = new Date().toISOString();
+    const agent = {
+      codigo: agentCodigo,
+      usuario,
+      nombre,
+      email: agentEmail,
+      zona,
+      telefono,
+      estado: 'Disponible',
+      mapa,
+      uid: userRecord.uid,
+      createdBy: userId,
+      createdAt: now,
+    };
+
+    const mobileProfile = {
+      name: nombre,
+      nombre,
+      email: agentEmail,
+      role: 'agente',
+      type: 'agente',
+      age: null,
+      gender: null,
+      bloodType: null,
+      agentCode: agentCodigo,
+      agentUsername: usuario,
+      linkedCompanyId: userId,
+      createdAt: now,
+      createdBy: userId,
+    };
+
+    await Promise.all([
+      db.collection(AGENTS_COLLECTION).doc(agentCodigo).set(agent),
+      db.collection(AGENTS_MIRROR_COLLECTION).doc(agentCodigo).set(agent),
+      db.collection(USERS_COLLECTION).doc(userRecord.uid).set(mobileProfile, { merge: true }),
+    ]);
+
+    return agent;
+  } catch (error) {
+    if (userRecord?.uid) {
+      await auth.deleteUser(userRecord.uid).catch(() => {});
+    }
+
+    throw error;
+  }
+};
+
+const resolveAgentAccess = async (payload) => {
+  const codigo = normalizeAgentCode(payload.codigo);
+  const usuario = normalizeAgentUsername(payload.usuario);
+
+  if (!codigo || !usuario) {
+    const error = new Error('Debes ingresar el codigo y usuario del agente.');
+    error.statusCode = 400;
+    throw error;
+  }
+
+  const agentDoc = await db.collection(AGENTS_COLLECTION).doc(codigo).get();
+
+  if (!agentDoc.exists) {
+    const error = new Error('No encontramos un agente con ese codigo y usuario.');
+    error.statusCode = 404;
+    throw error;
+  }
+
+  const agent = agentDoc.data();
+
+  if (normalizeAgentUsername(agent?.usuario) !== usuario || !agent?.email) {
+    const error = new Error('No encontramos un agente con ese codigo y usuario.');
+    error.statusCode = 404;
+    throw error;
+  }
+
+  return {
+    email: agent.email,
+    agent: {
+      codigo: agent.codigo,
+      usuario: agent.usuario,
+      nombre: agent.nombre,
+      zona: agent.zona,
+      telefono: agent.telefono,
+      estado: agent.estado,
+      uid: agent.uid,
+    },
+  };
+};
+
+const deleteAgent = async (codigo) => {
+  const normalizedCodigo = normalizeAgentCode(codigo);
+  const agentRef = db.collection(AGENTS_COLLECTION).doc(normalizedCodigo);
+  const agentDoc = await agentRef.get();
+
+  if (!agentDoc.exists) {
+    const error = new Error('Agente no encontrado.');
+    error.statusCode = 404;
+    throw error;
+  }
+
+  const agent = agentDoc.data();
+
+  // Delete Firebase user
+  if (agent.uid) {
+    await auth.deleteUser(agent.uid);
+  }
+
+  // Delete from collections
+  const deleteOperations = [
+    agentRef.delete(),
+    db.collection(AGENTS_MIRROR_COLLECTION).doc(normalizedCodigo).delete(),
+  ];
+
+  if (agent.uid) {
+    deleteOperations.push(db.collection(USERS_COLLECTION).doc(agent.uid).delete());
+  }
+
+  await Promise.all(deleteOperations);
 };
 
 const assignAgentToAlert = async (alertId, agentCode, payload = {}) => {
@@ -155,9 +510,27 @@ const assignAgentToAlert = async (alertId, agentCode, payload = {}) => {
     throw error;
   }
 
+  const normalizedAlertStatus = normalizeAlertStatus(alert.estado);
+
+  if (normalizedAlertStatus === 'Finalizado' || normalizedAlertStatus === 'Cancelado') {
+    const error = new Error(
+      normalizedAlertStatus === 'Finalizado'
+        ? 'No puedes asignar agentes a una alerta finalizada.'
+        : 'No puedes asignar agentes a una alerta cancelada.'
+    );
+    error.statusCode = 409;
+    throw error;
+  }
+
   if (!agent.nombre) {
     const error = new Error('El agente seleccionado no tiene datos suficientes.');
     error.statusCode = 400;
+    throw error;
+  }
+
+  if (agent.estado && agent.estado !== 'Disponible' && alert.agenteAsignado !== agent.nombre) {
+    const error = new Error('El agente seleccionado no esta disponible para una nueva asignacion.');
+    error.statusCode = 409;
     throw error;
   }
 
@@ -189,6 +562,7 @@ const assignAgentToAlert = async (alertId, agentCode, payload = {}) => {
   await Promise.all([
     alertRef.set(updatedAlert, { merge: true }),
     agentRef.set(updatedAgent, { merge: true }),
+    db.collection(AGENTS_MIRROR_COLLECTION).doc(agentCode).set(updatedAgent, { merge: true }),
     db.collection(NOTIFICATIONS_COLLECTION).doc(notificationId).set(notification),
   ]);
 
@@ -219,6 +593,20 @@ const finalizeAlert = async (alertId, payload = {}) => {
   if (!alert.usuario || !alert.ubicacion) {
     const error = new Error('La alerta seleccionada no tiene datos suficientes para finalizarse.');
     error.statusCode = 400;
+    throw error;
+  }
+
+  const normalizedAlertStatus = normalizeAlertStatus(alert.estado);
+
+  if (normalizedAlertStatus === 'Finalizado') {
+    const error = new Error('La alerta seleccionada ya fue finalizada.');
+    error.statusCode = 409;
+    throw error;
+  }
+
+  if (normalizedAlertStatus === 'Cancelado') {
+    const error = new Error('No puedes finalizar una alerta cancelada.');
+    error.statusCode = 409;
     throw error;
   }
 
@@ -322,6 +710,20 @@ const cancelAlert = async (alertId, payload = {}) => {
   if (!alert.usuario || !alert.ubicacion) {
     const error = new Error('La alerta seleccionada no tiene datos suficientes para cancelarse.');
     error.statusCode = 400;
+    throw error;
+  }
+
+  const normalizedAlertStatus = normalizeAlertStatus(alert.estado);
+
+  if (normalizedAlertStatus === 'Cancelado') {
+    const error = new Error('La alerta seleccionada ya fue cancelada.');
+    error.statusCode = 409;
+    throw error;
+  }
+
+  if (normalizedAlertStatus === 'Finalizado') {
+    const error = new Error('No puedes cancelar una alerta que ya fue finalizada.');
+    error.statusCode = 409;
     throw error;
   }
 
@@ -432,76 +834,6 @@ const updateAgentStatus = async (agentCode) => {
   return updatedAgent;
 };
 
-const createAgent = async (userId, payload) => {
-  const { nombre, codigo, zona, telefono } = payload;
-
-  if (!nombre || !codigo || !zona || !telefono) {
-    const error = new Error('Completa nombre, codigo, zona y telefono del agente.');
-    error.statusCode = 400;
-    throw error;
-  }
-
-  const normalizedCode = String(codigo).trim().toUpperCase();
-  const normalizedPhone = String(telefono).trim();
-
-  if (!/^\d+$/.test(normalizedPhone)) {
-    const error = new Error('El telefono del agente solo puede contener numeros.');
-    error.statusCode = 400;
-    throw error;
-  }
-
-  const agentRef = db.collection(AGENTS_COLLECTION).doc(normalizedCode);
-  const mirrorRef = db.collection(AGENTS_MIRROR_COLLECTION).doc(normalizedCode);
-  const existingDoc = await agentRef.get();
-
-  if (existingDoc.exists) {
-    const error = new Error('Ya existe un agente con ese codigo.');
-    error.statusCode = 409;
-    throw error;
-  }
-
-  const agent = {
-    codigo: normalizedCode,
-    nombre: String(nombre).trim(),
-    estado: 'Disponible',
-    zona: String(zona).trim(),
-    telefono: normalizedPhone,
-    createdAt: new Date().toISOString(),
-    createdBy: userId,
-  };
-
-  await Promise.all([
-    agentRef.set(agent),
-    mirrorRef.set(agent),
-  ]);
-
-  return agent;
-};
-
-const deleteAgent = async (agentCode) => {
-  if (!agentCode) {
-    const error = new Error('Debes indicar el agente a eliminar.');
-    error.statusCode = 400;
-    throw error;
-  }
-
-  const normalizedCode = String(agentCode).trim().toUpperCase();
-  const agentRef = db.collection(AGENTS_COLLECTION).doc(normalizedCode);
-  const mirrorRef = db.collection(AGENTS_MIRROR_COLLECTION).doc(normalizedCode);
-  const agentDoc = await agentRef.get();
-
-  if (!agentDoc.exists) {
-    const error = new Error('El agente no existe.');
-    error.statusCode = 404;
-    throw error;
-  }
-
-  await Promise.all([
-    agentRef.delete(),
-    mirrorRef.delete(),
-  ]);
-};
-
 const markNotificationAsRead = async (notificationId) => {
   if (!notificationId) {
     const error = new Error('Debes indicar la notificacion.');
@@ -557,6 +889,7 @@ module.exports = {
   assignAgentToAlert,
   finalizeAlert,
   cancelAlert,
+  resolveAgentAccess,
   updateAgentStatus,
   createAgent,
   deleteAgent,

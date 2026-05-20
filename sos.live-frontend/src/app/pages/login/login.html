@@ -1,57 +1,140 @@
- <section class="login-section">
-    <a routerLink="/home" class="back-circle">
-      <i class="bi bi-arrow-left"></i>
-    </a>
+<section class="login-section">
+  <a routerLink="/home" class="back-circle">
+    <i class="bi bi-arrow-left"></i>
+  </a>
 
-    <div class="overlay"></div>
+  <div class="overlay"></div>
 
-    <div class="container h-100">
-      <div class="row align-items-center h-100">
-        <div class="col-lg-6 text-white left-content">
-          <h2 class="fw-bold mb-4">Bienvenido a SOS.LIVE</h2>
-          <p class="mb-4">Si no tienes una cuenta, registrate aqui.</p>
-          <a routerLink="/register" class="btn btn-gold px-4">Registrarse</a>
+  <div class="container h-100">
+    <div class="row align-items-center h-100">
+      <div class="col-lg-6 text-white left-content" [class.left-content-admin]="accessMode === 'admin'">
+        <div *ngIf="accessMode === 'admin'" class="portal-badge">
+          <span class="portal-badge-label">Portal Administrativo</span>
+          <strong>Entrada protegida para el equipo SOS.LIVE</strong>
+          <p>
+            Usa solo credenciales administrativas autorizadas. Las cuentas de empresa no pueden ingresar por esta ruta.
+          </p>
         </div>
 
-        <div class="col-lg-6 d-flex justify-content-center">
-          <form class="login-card" (ngSubmit)="onSubmit()">
-            <h2 class="text-center mb-4 fw-bold text-white">Iniciar Sesion</h2>
+        <h2 class="fw-bold mb-4">Bienvenido a SOS.LIVE</h2>
+        <p class="mb-4">{{ accessDescription }}</p>
 
-            <div
-              *ngIf="feedbackMessage"
-              class="status-banner"
-              [class.status-error]="feedbackType === 'error'"
-              [class.status-success]="feedbackType === 'success'">
-              {{ feedbackMessage }}
+        <button
+          *ngIf="accessMode === 'admin'; else registerCompanyCta"
+          type="button"
+          class="btn btn-gold px-4"
+          (click)="setAccessMode('empresa')">
+          Ir a acceso empresa
+        </button>
+
+        <ng-template #registerCompanyCta>
+          <a
+            routerLink="/register"
+            [queryParams]="{ mode: 'empresa' }"
+            class="btn btn-gold px-4">
+            Registrarse
+          </a>
+        </ng-template>
+      </div>
+
+      <div class="col-lg-6 d-flex justify-content-center">
+        <form class="login-card" [class.login-card-admin]="accessMode === 'admin'" (ngSubmit)="onSubmit()">
+          <p class="access-kicker">Tipo de acceso</p>
+          <div class="access-toggle mb-4">
+            <button
+              type="button"
+              class="access-option"
+              [class.access-option-active]="accessMode === 'empresa'"
+              (click)="setAccessMode('empresa')">
+              Empresa
+            </button>
+            <button
+              type="button"
+              class="access-option"
+              [class.access-option-active]="accessMode === 'admin'"
+              (click)="setAccessMode('admin')">
+              Admin
+            </button>
+          </div>
+
+          <div class="admin-entry-banner" *ngIf="accessMode === 'admin'">
+            <div class="admin-entry-icon">
+              <i class="bi bi-shield-lock-fill"></i>
             </div>
-
-            <div class="mb-3 position-relative">
-              <i class="bi bi-person-fill input-icon"></i>
-              <input id="loginEmail" name="loginEmail" type="email" class="form-control custom-input" placeholder="Correo" [(ngModel)]="formData.email" required>
+            <div>
+              <span class="admin-entry-label">Ruta restringida</span>
+              <strong>Portal Administrativo</strong>
             </div>
+          </div>
 
-            <div class="mb-4 position-relative">
-              <i class="bi bi-lock-fill input-icon"></i>
-              <input id="loginPassword" name="loginPassword" type="password" class="form-control custom-input" placeholder="Contrasena" [(ngModel)]="formData.password" required>
-            </div>
+          <h2 class="text-center mb-4 fw-bold text-white">{{ formTitle }}</h2>
 
-            <div class="text-center">
-              <button type="submit" class="btn btn-gold px-4" [disabled]="isSubmitting">
-                {{ isSubmitting ? 'Ingresando...' : 'Iniciar sesion' }}
-              </button>
+          <div
+            *ngIf="feedbackMessage"
+            class="status-banner"
+            [class.status-error]="feedbackType === 'error'"
+            [class.status-success]="feedbackType === 'success'">
+            {{ feedbackMessage }}
+          </div>
 
-              <p class="forgot-password-text">
-                Olvidaste tu contrasena?
-                <a
-                  href="#"
-                  class="forgot-password-link"
-                  (click)="onResetPassword($event)">
-                  {{ isSendingResetEmail ? 'Enviando...' : 'Restablecela aqui' }}
-                </a>
-              </p>
-            </div>
-          </form>
-        </div>
+          <p class="loading-hint" *ngIf="isSubmitting">
+            Esto puede tardar unos segundos mientras validamos tu acceso y abrimos el panel.
+          </p>
+
+          <div class="mb-3 position-relative">
+            <i class="bi bi-person-fill input-icon"></i>
+            <input
+              id="loginEmail"
+              name="loginEmail"
+              [type]="accessMode === 'admin' ? 'text' : 'email'"
+              class="form-control custom-input"
+              [placeholder]="accessMode === 'admin' ? 'Usuario o correo admin' : 'Correo'"
+              [attr.autocomplete]="accessMode === 'admin' ? 'username' : 'email'"
+              [(ngModel)]="formData.email"
+              required>
+          </div>
+
+          <div class="mb-4 position-relative password-field">
+            <i class="bi bi-lock-fill input-icon"></i>
+            <input
+              id="loginPassword"
+              name="loginPassword"
+              [type]="isPasswordVisible ? 'text' : 'password'"
+              class="form-control custom-input custom-input-password"
+              placeholder="Contraseña"
+              autocomplete="current-password"
+              [(ngModel)]="formData.password"
+              required>
+            <button
+              type="button"
+              class="password-toggle"
+              [attr.aria-label]="isPasswordVisible ? 'Ocultar contraseña' : 'Mostrar contraseña'"
+              (click)="togglePasswordVisibility()">
+              <i class="bi" [class.bi-eye-fill]="!isPasswordVisible" [class.bi-eye-slash-fill]="isPasswordVisible"></i>
+            </button>
+          </div>
+
+          <div class="text-center">
+            <button type="submit" class="btn btn-gold px-4" [disabled]="isSubmitting">
+              {{ submitLabel }}
+            </button>
+
+            <p class="forgot-password-text" *ngIf="accessMode === 'empresa'">
+              &iquest;Olvidaste tu contrase&ntilde;a?
+              <a
+                href="#"
+                class="forgot-password-link"
+                (click)="onResetPassword($event)">
+                {{ forgotPasswordLabel }}
+              </a>
+            </p>
+
+            <p class="admin-hint" *ngIf="accessMode === 'admin'">
+              Solo las cuentas con rol administrativo pueden continuar por esta entrada.
+            </p>
+          </div>
+        </form>
       </div>
     </div>
-  </section>
+  </div>
+</section>

@@ -14,4 +14,16 @@ export class AgentsPageComponent implements OnInit {
     this.vm.initialize();
     this.vm.setActiveSection('agents');
   }
+
+  async registerAgent() {
+    await this.vm.createAgent(this.vm.agentFormData);
+    this.vm.agentFormData = {
+      nombre: '',
+      usuario: '',
+      password: '',
+      codigo: '',
+      zona: '',
+      telefono: '',
+    };
+  }
 }

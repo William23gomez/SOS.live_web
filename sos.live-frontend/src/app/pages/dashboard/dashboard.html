@@ -14,46 +14,36 @@
       </div>
 
       <nav class="sidebar-nav">
-        <a class="nav-item" [class.nav-item-active]="activeSection === 'overview'" routerLink="/dashboard">
+        <button type="button" class="nav-item" [class.nav-item-active]="activeSection === 'overview'" (click)="navigateToSection('overview')">
           <i class="bi bi-grid-1x2-fill"></i>
           Dashboard
-        </a>
-        <a class="nav-item" [class.nav-item-active]="activeSection === 'alerts'" routerLink="/alertas">
+        </button>
+        <button type="button" class="nav-item" [class.nav-item-active]="activeSection === 'alerts'" (click)="navigateToSection('alerts')">
           <i class="bi bi-exclamation-triangle-fill"></i>
           Alertas
-        </a>
-        <a class="nav-item" [class.nav-item-active]="activeSection === 'agents'" routerLink="/agentes">
+        </button>
+        <button type="button" class="nav-item" [class.nav-item-active]="activeSection === 'agents'" (click)="navigateToSection('agents')">
           <i class="bi bi-people-fill"></i>
           Agentes
-        </a>
-        <a class="nav-item" [class.nav-item-active]="activeSection === 'history'" routerLink="/historial">
+        </button>
+        <button type="button" class="nav-item" [class.nav-item-active]="activeSection === 'history'" (click)="navigateToSection('history')">
           <i class="bi bi-clock-history"></i>
           Historial
-        </a>
-        <a class="nav-item" [class.nav-item-active]="activeSection === 'company'" routerLink="/perfil-empresa">
+        </button>
+        <button type="button" class="nav-item" [class.nav-item-active]="activeSection === 'company'" (click)="navigateToSection('company')">
           <i class="bi bi-building-fill"></i>
           Perfil empresa
-        </a>
-        <a class="nav-item" [class.nav-item-active]="activeSection === 'billing'" routerLink="/pagos">
+        </button>
+        <button type="button" class="nav-item" [class.nav-item-active]="activeSection === 'billing'" (click)="navigateToSection('billing')">
           <i class="bi bi-credit-card-2-front-fill"></i>
           Pagos
-        </a>
-        <a class="nav-item" [class.nav-item-active]="activeSection === 'notifications'" routerLink="/notificaciones">
+        </button>
+        <button type="button" class="nav-item" [class.nav-item-active]="activeSection === 'notifications'" (click)="navigateToSection('notifications')">
           <i class="bi bi-bell-fill"></i>
           Notificaciones
-        </a>
+        </button>
       </nav>
 
-      <div class="sidebar-status">
-        <p class="sidebar-label">Estado de la sesion</p>
-        <div class="system-chip">
-          <span class="system-dot"></span>
-          Sesion autenticada
-        </div>
-        <p class="sidebar-copy">
-          Los datos visibles en el panel provienen de tus registros reales.
-        </p>
-      </div>
     </aside>
 
     <main class="dashboard-main">
@@ -72,12 +62,12 @@
             En vivo {{ realtimeClock }}
           </div>
           <div class="welcome-copy">
-            <span class="welcome-label">Sesion activa</span>
+            <span class="welcome-label">Cuenta activa</span>
             <strong>{{ displayName }}</strong>
           </div>
           <div class="avatar-chip">{{ userInitials }}</div>
           <button type="button" class="btn btn-outline-light" (click)="cerrarSesion()">
-            Cerrar sesion
+            Cerrar sesión
           </button>
         </div>
       </header>
@@ -118,7 +108,8 @@
 
               <div class="map-toolbar">
                 <div class="map-chip">Seguimiento cada segundo</div>
-                <div class="map-chip">Zona prioritaria: Corredor urbano central</div>
+                <div class="map-chip">Cobertura: Bogota y alrededores</div>
+                <div class="map-chip">Referencia activa: {{ mapContextLabel }}</div>
                 <div class="map-chip">Alertas monitoreadas: {{ filteredAlerts.length }}</div>
                 <a class="map-open-link" [href]="externalMapUrl" target="_blank" rel="noopener noreferrer">
                   Abrir mapa real
@@ -152,12 +143,20 @@
                   <p class="footer-label">Alertas recientes</p>
                   <div class="mini-list">
                     <button type="button" class="mini-row mini-row-button" *ngFor="let alert of recentAlerts.slice(0, 3)" (click)="focusAlertFromMap(alert.id)">
-                      <strong>{{ alert.usuario }}</strong>
-                      <span>{{ alert.ubicacion }}</span>
+                      <div class="mini-row-main">
+                        <strong>{{ alert.usuario }}</strong>
+                        <span class="mini-row-meta">{{ alert.tipo }} | {{ alert.hora }}</span>
+                        <span class="mini-row-note">{{ alert.ubicacion }}</span>
+                      </div>
+                      <span class="mini-status-pill mini-status-pill-alert">
+                        {{ normalizeAlertStatus(alert.estado) }}
+                      </span>
                     </button>
                     <div class="mini-row" *ngIf="recentAlerts.length === 0">
-                      <strong>Sin alertas</strong>
-                      <span>No hay alertas registradas.</span>
+                      <div class="mini-row-main">
+                        <strong>Sin alertas</strong>
+                        <span class="mini-row-note">No hay alertas registradas.</span>
+                      </div>
                     </div>
                   </div>
                 </article>
@@ -166,12 +165,20 @@
                   <p class="footer-label">Agentes en campo</p>
                   <div class="mini-list">
                     <div class="mini-row" *ngFor="let agent of agents.slice(0, 3)">
-                      <strong>{{ agent.nombre }}</strong>
-                      <span>{{ agent.estado }} - {{ agent.zona }}</span>
+                      <div class="mini-row-main">
+                        <strong>{{ agent.nombre }}</strong>
+                        <span class="mini-row-meta">{{ agent.zona }}</span>
+                        <span class="mini-row-note">{{ agent.telefono || agent.email || 'Agente activo' }}</span>
+                      </div>
+                      <span class="mini-status-pill" [class.mini-status-pill-busy]="agent.estado !== 'Disponible'">
+                        {{ agent.estado }}
+                      </span>
                     </div>
                     <div class="mini-row" *ngIf="agents.length === 0">
-                      <strong>Sin agentes</strong>
-                      <span>No hay agentes registrados.</span>
+                      <div class="mini-row-main">
+                        <strong>Sin agentes</strong>
+                        <span class="mini-row-note">No hay agentes registrados.</span>
+                      </div>
                     </div>
                   </div>
                 </article>
@@ -179,36 +186,6 @@
             </article>
 
             <div class="side-panels">
-              <article class="panel-card security-panel">
-                <div class="panel-heading">
-                  <div>
-                    <p class="panel-kicker">Seguridad</p>
-                    <h2>Estado de la cuenta</h2>
-                  </div>
-                </div>
-
-                <p class="info-label">Correo actual</p>
-                <p class="info-value">{{ formData.email }}</p>
-
-                <span class="verification-pill" [class.verification-pill-ok]="isEmailVerified" [class.verification-pill-warn]="!isEmailVerified">
-                  {{ isEmailVerified ? 'Correo verificado' : 'Correo pendiente de verificacion' }}
-                </span>
-
-                <button
-                  *ngIf="!isEmailVerified"
-                  type="button"
-                  class="btn btn-gold w-100 mt-3"
-                  [disabled]="isResendingVerification"
-                  (click)="reenviarVerificacion()">
-                  {{ isResendingVerification ? 'Enviando...' : 'Reenviar verificacion' }}
-                </button>
-
-                <div class="security-note">
-                  <i class="bi bi-shield-check"></i>
-                  Mantener tu correo verificado mejora la recuperacion de acceso y la trazabilidad.
-                </div>
-              </article>
-
               <article class="panel-card">
                 <div class="panel-heading">
                   <div>
@@ -273,7 +250,7 @@
                 <option>Media</option>
                 <option>Baja</option>
               </select>
-              <input class="toolbar-input" type="text" name="alertUbicacion" placeholder="Ubicacion exacta" [(ngModel)]="newAlertForm.ubicacion">
+              <input class="toolbar-input" type="text" name="alertUbicacion" placeholder="Direccion o ubicacion exacta" [(ngModel)]="newAlertForm.ubicacion">
               <input class="toolbar-input" type="text" name="alertDescripcion" placeholder="Describe la situacion" [(ngModel)]="newAlertForm.descripcion">
               <button type="submit" class="btn btn-gold" [disabled]="isCreatingAlert">
                 {{ isCreatingAlert ? 'Registrando...' : 'Crear alerta' }}
@@ -343,23 +320,29 @@
 
               <div class="assign-box">
                 <span class="info-label">Asignar agente</span>
-                <select class="toolbar-select w-100" [(ngModel)]="selectedAgentCode">
-                  <option *ngFor="let agent of agents" [value]="agent.codigo">
-                    {{ agent.nombre }} - {{ agent.estado }}
+                <select class="toolbar-select w-100" [(ngModel)]="selectedAgentCode" [disabled]="!canAssignSelectedAlert || assignableAgents.length === 0">
+                  <option *ngFor="let agent of assignableAgents" [value]="agent.codigo">
+                    {{ agent.nombre }} - {{ agent.zona }} - {{ agent.estado }}
                   </option>
                 </select>
-                <button type="button" class="btn btn-gold w-100 mt-3" (click)="assignSelectedAgent()">
+                <p class="detail-copy mt-3" *ngIf="!canAssignSelectedAlert">
+                  Esta alerta ya fue {{ selectedAlertServiceStatus.toLowerCase() }} y no admite nuevas asignaciones.
+                </p>
+                <p class="detail-copy mt-3" *ngIf="canAssignSelectedAlert && assignableAgents.length === 0">
+                  No hay agentes disponibles para esta alerta en este momento.
+                </p>
+                <button type="button" class="btn btn-gold w-100 mt-3" [disabled]="!canAssignSelectedAlert || !selectedAgentCode || assignableAgents.length === 0" (click)="assignSelectedAgent()">
                   Asignar agente
                 </button>
                 <button
-                  *ngIf="selectedAlertServiceStatus !== 'Finalizado'"
+                  *ngIf="canFinalizeSelectedAlert"
                   type="button"
                   class="btn btn-outline-light w-100 mt-3"
                   (click)="finalizeSelectedAlert()">
                   Finalizar servicio
                 </button>
                 <button
-                  *ngIf="selectedAlertServiceStatus !== 'Finalizado' && selectedAlertServiceStatus !== 'Cancelado'"
+                  *ngIf="canCancelSelectedAlert"
                   type="button"
                   class="btn btn-outline-danger w-100 mt-3"
                   (click)="cancelSelectedAlert()">
@@ -374,7 +357,7 @@
               <p class="panel-kicker">Detalle seleccionado</p>
               <h3>Sin alertas disponibles</h3>
               <p class="detail-copy">
-                Cuando Firestore reciba alertas activas, aqui podras ver el detalle y asignar agentes.
+                Cuando Firestore reciba alertas activas, aquí podrás ver el detalle y asignar agentes.
               </p>
             </aside>
           </ng-template>
@@ -398,10 +381,12 @@
             </div>
 
             <form class="agent-entry-form" (ngSubmit)="createAgent()">
-              <input class="toolbar-input" type="text" name="agentNombre" placeholder="Nombre completo" [(ngModel)]="newAgentForm.nombre">
-              <input class="toolbar-input" type="text" name="agentCodigo" placeholder="Codigo interno" [(ngModel)]="newAgentForm.codigo">
-              <input class="toolbar-input" type="text" name="agentZona" placeholder="Zona asignada" [(ngModel)]="newAgentForm.zona">
-              <input class="toolbar-input" type="text" name="agentTelefono" placeholder="Telefono" [(ngModel)]="newAgentForm.telefono" (input)="onlyNumbersAgent()">
+              <input class="toolbar-input" type="text" name="agentNombre" placeholder="Nombre completo" [(ngModel)]="newAgentForm.nombre" required>
+              <input class="toolbar-input" type="text" name="agentUsuario" placeholder="Usuario del agente" [(ngModel)]="newAgentForm.usuario" required>
+              <input class="toolbar-input" type="password" name="agentPassword" placeholder="Contraseña" [(ngModel)]="newAgentForm.password" required>
+              <input class="toolbar-input" type="text" name="agentCodigo" placeholder="Codigo de acceso" [(ngModel)]="newAgentForm.codigo" required>
+              <input class="toolbar-input" type="text" name="agentZona" placeholder="Zona o sector (ej. Sur, Kennedy, Suba)" [(ngModel)]="newAgentForm.zona" required>
+              <input class="toolbar-input" type="text" name="agentTelefono" placeholder="Teléfono" [(ngModel)]="newAgentForm.telefono" (input)="onlyNumbersAgent()" required>
               <button type="submit" class="btn btn-gold" [disabled]="isCreatingAgent">
                 {{ isCreatingAgent ? 'Guardando...' : 'Agregar agente' }}
               </button>
@@ -414,9 +399,10 @@
                 <strong>{{ agent.nombre }}</strong>
                 <span class="badge-pill" [class.badge-success]="agent.estado === 'Disponible'" [class.badge-danger]="agent.estado !== 'Disponible'">{{ agent.estado }}</span>
               </div>
-              <p>Codigo: {{ agent.codigo }}</p>
+              <p>Código: {{ agent.codigo }}</p>
+              <p>Usuario: {{ agent.usuario || 'Sin usuario' }}</p>
               <p>Zona: {{ agent.zona }}</p>
-              <p>Telefono: {{ agent.telefono }}</p>
+              <p>Teléfono: {{ agent.telefono }}</p>
               <div class="agent-card-actions">
                 <button type="button" class="btn btn-outline-light btn-sm" (click)="toggleAgentStatus(agent.codigo)">
                   Cambiar estado

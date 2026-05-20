@@ -11,6 +11,7 @@ import { Dashboard } from './pages/dashboard/dashboard';
 import { DashboardOverviewPage } from './pages/dashboard/dashboard-overview';
 import { Register } from './pages/register/register';
 import { ResetPassword } from './pages/reset-password/reset-password';
+import { EmailVerified } from './pages/email-verified/email-verified';
 import { AdminPageComponent } from './pages/admin/admin-page';
 import { AdminCompaniesComponent } from './pages/admin/admin-companies';
 import { AlertsPageComponent } from './pages/alerts/alerts-page';
@@ -27,6 +28,7 @@ import { EnterpriseShellComponent } from './shared/enterprise-shell/enterprise-s
     DashboardOverviewPage,
     Register,
     ResetPassword,
+    EmailVerified,
     AdminPageComponent,
     AdminCompaniesComponent,
     AlertsPageComponent,

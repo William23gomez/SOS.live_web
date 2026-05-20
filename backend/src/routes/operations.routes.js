@@ -5,6 +5,8 @@ const authMiddleware = require('../middlewares/auth.middleware');
 
 const router = express.Router();
 
+router.post('/agents/resolve-access', operationsController.resolveAgentAccess);
+
 router.use(authMiddleware);
 
 router.get('/alerts', operationsController.listAlerts);

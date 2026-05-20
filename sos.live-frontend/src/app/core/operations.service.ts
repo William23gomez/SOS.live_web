@@ -2,6 +2,7 @@ import { Injectable } from '@angular/core';
 import { HttpClient, HttpErrorResponse, HttpHeaders } from '@angular/common/http';
 import { firstValueFrom } from 'rxjs';
 
+import { API_BASE_URL } from './api.config';
 import { AuthService } from './auth.service';
 import { DashboardAgent, DashboardAlert, DashboardNotification } from './dashboard-data.service';
 
@@ -41,7 +42,7 @@ interface AgentMutationResponse {
 
 @Injectable({ providedIn: 'root' })
 export class OperationsService {
-  private readonly apiUrl = 'http://localhost:3000/api/operations';
+  private readonly apiUrl = `${API_BASE_URL}/operations`;
   private readonly requestTimeoutMs = 15000;
 
   constructor(
@@ -90,9 +91,11 @@ export class OperationsService {
 
   async createAgent(payload: {
     nombre: string;
-    codigo: string;
+    usuario: string;
+    password: string;
     zona: string;
     telefono: string;
+    codigo: string;
   }) {
     const headers = await this.getAuthHeaders();
 

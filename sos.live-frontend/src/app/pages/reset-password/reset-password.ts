@@ -1,5 +1,6 @@
 import { Component, OnInit } from '@angular/core';
 import { ActivatedRoute, Router } from '@angular/router';
+import { ActionCodeURL } from 'firebase/auth';
 
 import { AuthService } from '../../core/auth.service';
 
@@ -11,6 +12,8 @@ import { AuthService } from '../../core/auth.service';
 })
 export class ResetPassword implements OnInit {
   private readonly securePasswordPattern = /^(?=.*[A-Za-z])(?=.*\d).{6,}$/;
+  isPasswordVisible = false;
+  isConfirmPasswordVisible = false;
 
   formData = {
     password: '',
@@ -36,8 +39,8 @@ export class ResetPassword implements OnInit {
     if (this.route.snapshot.queryParamMap.get('notice') === 'sent') {
       this.showFeedback(
         this.resetEmail
-          ? `Te llegara un correo de recuperacion a ${this.resetEmail}. Revisa entrada, spam o promociones y abre ese enlace para cambiar la contrasena.`
-          : 'Te llegara un correo de recuperacion. Revisa entrada, spam o promociones y abre ese enlace para cambiar la contrasena.',
+          ? `Te llegar\u00e1 un correo de recuperaci\u00f3n a ${this.resetEmail}. Revisa entrada, spam o promociones y abre ese enlace para cambiar la contrase\u00f1a.`
+          : 'Te llegar\u00e1 un correo de recuperaci\u00f3n. Revisa entrada, spam o promociones y abre ese enlace para cambiar la contrase\u00f1a.',
         'success'
       );
       return;
@@ -45,7 +48,7 @@ export class ResetPassword implements OnInit {
 
     if (!this.resetCode) {
       this.showFeedback(
-        'Esta pantalla queda lista para cambiar la contrasena cuando abras el enlace valido que llega al correo.',
+        'Esta pantalla queda lista para cambiar la contrase\u00f1a cuando abras el enlace v\u00e1lido que llega al correo.',
         'success'
       );
     }
@@ -59,26 +62,26 @@ export class ResetPassword implements OnInit {
     const { password, confirmPassword } = this.formData;
 
     if (!password || !confirmPassword) {
-      this.showFeedback('Completa ambos campos para restablecer la contrasena.', 'error');
+      this.showFeedback('Completa ambos campos para restablecer la contrase\u00f1a.', 'error');
       return;
     }
 
     if (!this.securePasswordPattern.test(password)) {
       this.showFeedback(
-        'La nueva contrasena debe tener minimo 6 caracteres e incluir letras y numeros.',
+        'La nueva contrase\u00f1a debe tener m\u00ednimo 6 caracteres e incluir letras y n\u00fameros.',
         'error'
       );
       return;
     }
 
     if (password !== confirmPassword) {
-      this.showFeedback('Las contrasenas no coinciden.', 'error');
+      this.showFeedback('Las contrase\u00f1as no coinciden.', 'error');
       return;
     }
 
     if (!this.resetCode) {
       this.showFeedback(
-        'Primero debes abrir el enlace de recuperacion que llega al correo para poder cambiar la contrasena aqui.',
+        'Primero debes abrir el enlace de recuperaci\u00f3n que llega al correo para poder cambiar la contrase\u00f1a aqu\u00ed.',
         'error'
       );
       return;
@@ -90,7 +93,7 @@ export class ResetPassword implements OnInit {
     try {
       await this.authService.confirmarRestablecimientoContrasena(this.resetCode, password);
       this.showFeedback(
-        'Contrasena actualizada correctamente. Ahora puedes iniciar sesion.',
+        'Contrase\u00f1a actualizada correctamente. Ahora puedes iniciar sesi\u00f3n.',
         'success'
       );
 
@@ -108,12 +111,26 @@ export class ResetPassword implements OnInit {
     void this.router.navigate(['/login']);
   }
 
+  togglePasswordVisibility() {
+    this.isPasswordVisible = !this.isPasswordVisible;
+  }
+
+  toggleConfirmPasswordVisibility() {
+    this.isConfirmPasswordVisible = !this.isConfirmPasswordVisible;
+  }
+
   private showFeedback(message: string, type: 'success' | 'error') {
     this.feedbackMessage = message;
     this.feedbackType = type;
   }
 
   private resolveResetCode() {
+    const parsedActionLink = ActionCodeURL.parseLink(window.location.href);
+
+    if (parsedActionLink?.code) {
+      return parsedActionLink.code;
+    }
+
     const directCode = this.route.snapshot.queryParamMap.get('oobCode');
 
     if (directCode) {

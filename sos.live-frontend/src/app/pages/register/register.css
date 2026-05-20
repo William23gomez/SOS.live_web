@@ -59,6 +59,46 @@ body {
     animation: fadeInUp 0.8s ease;
 }
 
+.register-card-admin {
+    background:
+        linear-gradient(180deg, rgba(5, 27, 42, 0.9), rgba(0, 39, 59, 0.82)),
+        rgba(0, 39, 59, 0.8);
+    border: 1px solid rgba(104, 205, 228, 0.28);
+    box-shadow: 0 24px 50px rgba(0, 0, 0, 0.46);
+}
+
+.access-kicker {
+    margin: 0 0 10px;
+    color: rgba(233, 239, 246, 0.6);
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    font-size: 0.76rem;
+}
+
+.access-toggle {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 10px;
+}
+
+.access-option {
+    min-height: 46px;
+    border-radius: 16px;
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    background: rgba(255, 255, 255, 0.06);
+    color: #f5f7fa;
+    font-weight: 700;
+    transition: background 0.25s ease, border-color 0.25s ease, transform 0.25s ease;
+}
+
+.access-option:hover,
+.access-option-active {
+    background: rgba(212, 175, 55, 0.18);
+    border-color: rgba(212, 175, 55, 0.4);
+    color: #fff2b4;
+    transform: translateY(-1px);
+}
+
 .status-banner {
     border-radius: 18px;
     margin-bottom: 18px;
@@ -78,6 +118,52 @@ body {
     background: rgba(180, 53, 53, 0.18);
     border-color: rgba(255, 153, 153, 0.4);
     color: #ffe1e1;
+}
+
+.loading-hint {
+    margin: -6px 0 16px;
+    color: rgba(233, 239, 246, 0.74);
+    font-size: 0.9rem;
+    line-height: 1.45;
+}
+
+.admin-register-banner {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    margin-bottom: 18px;
+    padding: 14px 16px;
+    border-radius: 20px;
+    background: rgba(104, 205, 228, 0.08);
+    border: 1px solid rgba(104, 205, 228, 0.22);
+}
+
+.admin-register-icon {
+    flex: 0 0 48px;
+    width: 48px;
+    height: 48px;
+    border-radius: 16px;
+    display: grid;
+    place-items: center;
+    background: rgba(104, 205, 228, 0.14);
+    color: #9fe9ff;
+    font-size: 1.2rem;
+}
+
+.admin-register-banner strong {
+    display: block;
+    color: #effaff;
+    font-size: 1.02rem;
+}
+
+.admin-register-label {
+    display: block;
+    margin-bottom: 2px;
+    color: rgba(159, 233, 255, 0.8);
+    font-size: 0.78rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
 }
 
 /* Inputs personalizados */
@@ -102,6 +188,31 @@ body {
     border: none;
     padding-left: 40px;
     outline: none;
+}
+
+.password-input {
+    padding-right: 48px;
+}
+
+.password-toggle {
+    position: absolute;
+    right: 10px;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 32px;
+    height: 32px;
+    display: grid;
+    place-items: center;
+    border: none;
+    border-radius: 50%;
+    background: transparent;
+    color: #D4AF37;
+    transition: background 0.25s ease, color 0.25s ease;
+}
+
+.password-toggle:hover {
+    background: rgba(212, 175, 55, 0.12);
+    color: #f1cf68;
 }
 
 /* Botón dorado */
@@ -131,9 +242,77 @@ body {
     color: #D4AF37;
 }
 
+.admin-access-card {
+    padding: 22px 20px;
+    border-radius: 22px;
+    background:
+        linear-gradient(135deg, rgba(88, 191, 214, 0.12), rgba(4, 14, 30, 0.14)),
+        rgba(255, 255, 255, 0.04);
+    border: 1px solid rgba(104, 205, 228, 0.2);
+    color: #f5f7fa;
+}
+
+.admin-access-card strong {
+    display: block;
+    margin-bottom: 10px;
+    font-size: 1.05rem;
+}
+
+.admin-access-card p {
+    margin-bottom: 18px;
+    color: rgba(233, 239, 246, 0.78);
+    line-height: 1.6;
+}
+
 /* Lado derecho */
 .right-content {
     padding-left: 5%;
+}
+
+.right-content-admin {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    gap: 22px;
+}
+
+.portal-register-badge {
+    max-width: 420px;
+    margin: 0 auto;
+    padding: 22px 24px;
+    border-radius: 28px;
+    text-align: left;
+    background:
+        linear-gradient(135deg, rgba(88, 191, 214, 0.16), rgba(4, 14, 30, 0.2)),
+        rgba(6, 24, 39, 0.62);
+    border: 1px solid rgba(104, 205, 228, 0.3);
+    box-shadow: 0 18px 44px rgba(0, 0, 0, 0.28);
+}
+
+.portal-register-label {
+    display: inline-flex;
+    margin-bottom: 12px;
+    padding: 7px 12px;
+    border-radius: 999px;
+    background: rgba(104, 205, 228, 0.14);
+    color: #9fe9ff;
+    font-size: 0.78rem;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+}
+
+.portal-register-badge strong {
+    display: block;
+    margin-bottom: 10px;
+    font-size: 1.2rem;
+    color: #f4fbff;
+}
+
+.portal-register-badge p {
+    margin: 0;
+    color: rgba(233, 239, 246, 0.82);
+    line-height: 1.6;
 }
 
 /* Animación */
@@ -156,6 +335,11 @@ body {
         text-align: center;
         margin-top: 50px;
         padding-left: 0;
+    }
+
+    .portal-register-badge {
+        max-width: none;
+        text-align: center;
     }
 
     .register-section {

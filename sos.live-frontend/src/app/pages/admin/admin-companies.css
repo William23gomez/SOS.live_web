@@ -64,6 +64,7 @@
     border-radius: 22px;
     border: 1px solid rgba(255, 255, 255, 0.08);
     background: rgba(8, 21, 35, 0.82);
+    min-width: 0;
 }
 
 .admin-company-card-head {
@@ -74,16 +75,25 @@
     margin-bottom: 18px;
 }
 
+.admin-company-title,
+.admin-company-meta-item {
+    min-width: 0;
+}
+
 .admin-company-card-head strong {
     display: block;
     color: #fff;
     font-size: 1.08rem;
     font-weight: 800;
+    overflow-wrap: anywhere;
+    word-break: break-word;
 }
 
 .admin-company-card-head p {
     margin: 6px 0 0;
     color: rgba(233, 239, 246, 0.68);
+    overflow-wrap: anywhere;
+    word-break: break-word;
 }
 
 .admin-company-meta {
@@ -103,6 +113,7 @@
 
 .admin-company-meta strong {
     color: #fff;
+    overflow-wrap: anywhere;
     word-break: break-word;
 }
 

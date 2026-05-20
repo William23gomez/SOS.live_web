@@ -24,9 +24,9 @@
   <div class="admin-company-cards" *ngIf="!isLoading && companies.length">
     <article class="admin-company-card" *ngFor="let company of companies">
       <div class="admin-company-card-head">
-        <div>
+        <div class="admin-company-title">
           <strong>{{ company.nombre }}</strong>
-          <p>{{ company.email }}</p>
+          <p>{{ company.createdAt ? ('Vinculada desde ' + (company.createdAt | date:'mediumDate')) : 'Registro empresarial activo' }}</p>
         </div>
         <span class="admin-pill" [class.admin-pill-ok]="company.estado === 'Aprobada'" [class.admin-pill-warn]="company.estado !== 'Aprobada'">
           {{ company.estado }}
@@ -34,21 +34,21 @@
       </div>
 
       <div class="admin-company-meta">
-        <div>
-          <span class="admin-company-label">UID</span>
-          <strong>{{ company.uid }}</strong>
+        <div class="admin-company-meta-item">
+          <span class="admin-company-label">Correo</span>
+          <strong>{{ company.email || 'Sin correo' }}</strong>
         </div>
-        <div>
+        <div class="admin-company-meta-item">
           <span class="admin-company-label">Telefono</span>
-          <strong>{{ company.telefono }}</strong>
+          <strong>{{ company.telefono || 'Sin telefono' }}</strong>
         </div>
-        <div>
+        <div class="admin-company-meta-item">
           <span class="admin-company-label">NIT</span>
-          <strong>{{ company.nit }}</strong>
+          <strong>{{ company.nit || 'Sin NIT' }}</strong>
         </div>
-        <div>
-          <span class="admin-company-label">Inscripcion</span>
-          <strong>{{ company.createdAt ? (company.createdAt | date:'medium') : 'Sin fecha' }}</strong>
+        <div class="admin-company-meta-item">
+          <span class="admin-company-label">Identificador</span>
+          <strong>{{ company.uid }}</strong>
         </div>
       </div>
     </article>

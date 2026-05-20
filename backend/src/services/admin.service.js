@@ -21,11 +21,38 @@ const formatCurrency = (value) =>
     maximumFractionDigits: 0,
   }).format(value);
 
-const listCompanies = async () => {
-  const snapshot = await db.collection(COMPANIES_COLLECTION).get();
+const buildAdminIdentitySet = (users = [], field) => {
+  return new Set(
+    users
+      .filter((user) => user.rol === 'admin')
+      .map((user) => String(user[field] || '').trim().toLowerCase())
+      .filter(Boolean)
+  );
+};
 
-  return snapshot.docs
-    .map((doc) => doc.data())
+const normalizeCompanies = (companies = [], users = []) => {
+  const adminUids = buildAdminIdentitySet(users, 'uid');
+  const adminEmails = buildAdminIdentitySet(users, 'email');
+
+  return companies
+    .filter((company) => {
+      const uid = String(company.uid || '').trim().toLowerCase();
+      const email = String(company.email || '').trim().toLowerCase();
+
+      if (company.rol === 'admin') {
+        return false;
+      }
+
+      if (uid && adminUids.has(uid)) {
+        return false;
+      }
+
+      if (email && adminEmails.has(email)) {
+        return false;
+      }
+
+      return true;
+    })
     .map((company) => ({
       uid: company.uid,
       nombre: company.nombre,
@@ -35,7 +62,18 @@ const listCompanies = async () => {
       estado: company.estado || 'Aprobada',
       createdAt: company.createdAt || null,
     }))
-    .sort((a, b) => a.nombre.localeCompare(b.nombre));
+    .sort((a, b) => String(a.nombre || '').localeCompare(String(b.nombre || '')));
+};
+
+const listCompanies = async () => {
+  const [usersSnapshot, companiesSnapshot] = await Promise.all([
+    db.collection(USERS_COLLECTION).get(),
+    db.collection(COMPANIES_COLLECTION).get(),
+  ]);
+  const users = usersSnapshot.docs.map((doc) => doc.data());
+  const companies = companiesSnapshot.docs.map((doc) => doc.data());
+
+  return normalizeCompanies(companies, users);
 };
 
 const listBilling = async () => {
@@ -60,8 +98,9 @@ const getOverview = async () => {
   const users = usersSnapshot.docs.map((doc) => doc.data());
   const companies = companiesSnapshot.docs.map((doc) => doc.data());
   const billingRows = billingSnapshot.docs.map((doc) => doc.data());
+  const visibleCompanies = normalizeCompanies(companies, users);
 
-  const companiesCount = companies.length;
+  const companiesCount = visibleCompanies.length;
   const adminCount = users.filter((user) => user.rol === 'admin').length;
   const alertsCount = alertsSnapshot.size;
   const totalRevenue = billingRows.reduce((sum, row) => {

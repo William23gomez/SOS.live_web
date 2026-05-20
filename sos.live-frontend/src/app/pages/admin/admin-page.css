@@ -248,6 +248,36 @@
     padding: 14px 10px;
     border-radius: 18px;
     background: rgba(255, 255, 255, 0.04);
+    min-width: 0;
+}
+
+.admin-table-row > span,
+.admin-table-head > span {
+    min-width: 0;
+}
+
+.admin-company-row {
+    align-items: start;
+}
+
+.admin-company-stack {
+    display: grid;
+    gap: 4px;
+    min-width: 0;
+}
+
+.admin-company-stack strong,
+.admin-company-stack small {
+    overflow-wrap: anywhere;
+    word-break: break-word;
+}
+
+.admin-company-stack strong {
+    color: #fff;
+}
+
+.admin-company-stack small {
+    color: rgba(233, 239, 246, 0.6);
 }
 
 .admin-pill {

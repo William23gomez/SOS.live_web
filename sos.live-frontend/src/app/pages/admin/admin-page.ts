@@ -42,6 +42,27 @@ export class AdminPageComponent {
     return this.authService.getCachedProfile()?.nombre || 'Administrador SOS.LIVE';
   }
 
+  get visibleCompanies() {
+    const adminProfile = this.authService.getCachedProfile();
+    const adminUid = String(adminProfile?.uid || '').trim();
+    const adminEmail = String(adminProfile?.email || '').trim().toLowerCase();
+
+    return this.companies.filter((company) => {
+      const companyUid = String(company.uid || '').trim();
+      const companyEmail = String(company.email || '').trim().toLowerCase();
+
+      if (adminUid && companyUid === adminUid) {
+        return false;
+      }
+
+      if (adminEmail && companyEmail === adminEmail) {
+        return false;
+      }
+
+      return true;
+    });
+  }
+
   setActiveSection(section: 'overview' | 'companies' | 'payments' | 'reports') {
     this.activeSection = section;
   }
