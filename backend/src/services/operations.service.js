@@ -108,8 +108,272 @@ const buildMobileMapLocation = (location) => {
     lng,
     label: 'Ubicacion SOS movil',
     query: `${lat},${lng}`,
-    source: 'geocoded',
+    source: 'device',
+    precision: 'exact',
   };
+};
+
+const toFiniteNumber = (value) => {
+  const parsedValue = Number(value);
+  return Number.isFinite(parsedValue) ? parsedValue : null;
+};
+
+const normalizeLocationText = (value = '') => String(value || '').trim();
+
+const extractLocationPayload = (payload = {}) => {
+  const nestedLocation =
+    payload.location && typeof payload.location === 'object' ? payload.location : {};
+  const nestedMap = payload.mapa && typeof payload.mapa === 'object' ? payload.mapa : {};
+
+  return {
+    lat: toFiniteNumber(
+      payload.lat ??
+        payload.latitude ??
+        nestedLocation.lat ??
+        nestedLocation.latitude ??
+        nestedMap.lat
+    ),
+    lng: toFiniteNumber(
+      payload.lng ??
+        payload.longitude ??
+        nestedLocation.lng ??
+        nestedLocation.longitude ??
+        nestedMap.lng
+    ),
+    exactAddress: normalizeLocationText(
+      payload.ubicacionExacta ??
+        payload.direccionExacta ??
+        payload.address ??
+        payload.label ??
+        nestedLocation.ubicacionExacta ??
+        nestedLocation.direccionExacta ??
+        nestedLocation.address ??
+        nestedLocation.label ??
+        nestedMap.label ??
+        nestedMap.query
+    ),
+  };
+};
+
+const hasCoordinates = (location) =>
+  Number.isFinite(Number(location?.lat)) && Number.isFinite(Number(location?.lng));
+
+const normalizeMapPrecision = (location) => {
+  const precision = String(location?.precision || '')
+    .trim()
+    .toLowerCase();
+
+  if (precision === 'exact') {
+    return 'exact';
+  }
+
+  if (precision === 'approximate') {
+    return 'approximate';
+  }
+
+  return null;
+};
+
+const isExactMapLocation = (location) => {
+  if (!hasCoordinates(location)) {
+    return false;
+  }
+
+  const precision = normalizeMapPrecision(location);
+
+  if (precision) {
+    return precision === 'exact';
+  }
+
+  return location?.source === 'device';
+};
+
+const areMapLocationsEquivalent = (first, second) => {
+  if (!first && !second) {
+    return true;
+  }
+
+  if (!first || !second) {
+    return false;
+  }
+
+  return (
+    Number(first.lat).toFixed(6) === Number(second.lat).toFixed(6) &&
+    Number(first.lng).toFixed(6) === Number(second.lng).toFixed(6) &&
+    String(first.label || '') === String(second.label || '') &&
+    String(first.query || '') === String(second.query || '') &&
+    String(first.source || '') === String(second.source || '') &&
+    String(first.precision || '') === String(second.precision || '') &&
+    String(first.matchType || '') === String(second.matchType || '')
+  );
+};
+
+const buildCoordinateMapLocation = ({ lat, lng, exactAddress }) => {
+  const resolvedLat = Number(lat);
+  const resolvedLng = Number(lng);
+  const fallbackLabel = `Lat ${resolvedLat.toFixed(6)}, Lng ${resolvedLng.toFixed(6)}`;
+
+  return {
+    lat: resolvedLat,
+    lng: resolvedLng,
+    label: exactAddress || fallbackLabel,
+    query: exactAddress || `${resolvedLat},${resolvedLng}`,
+    source: 'device',
+    precision: 'exact',
+  };
+};
+
+const resolveMapLocationFromPayload = async (
+  payload,
+  { fallbackText = '', fallbackType = 'address' } = {}
+) => {
+  const { lat, lng, exactAddress } = extractLocationPayload(payload);
+
+  if (lat !== null && lng !== null) {
+    return buildCoordinateMapLocation({ lat, lng, exactAddress });
+  }
+
+  if (exactAddress) {
+    return geocodeLocation(exactAddress, { type: 'address' });
+  }
+
+  if (!fallbackText) {
+    return null;
+  }
+
+  return geocodeLocation(fallbackText, { type: fallbackType });
+};
+
+const enrichAlertMapLocation = async (alert = {}) => {
+  if (!alert?.id || !String(alert?.ubicacion || '').trim() || isExactMapLocation(alert.mapa)) {
+    return alert;
+  }
+
+  const resolvedMapLocation = await geocodeLocation(alert.ubicacion, { type: 'address' });
+
+  if (!resolvedMapLocation) {
+    return alert;
+  }
+
+  const enrichedAlert = {
+    ...alert,
+    mapa: resolvedMapLocation,
+  };
+
+  if (!areMapLocationsEquivalent(alert.mapa, resolvedMapLocation)) {
+    await db
+      .collection(ALERTS_COLLECTION)
+      .doc(alert.id)
+      .set({ mapa: resolvedMapLocation }, { merge: true })
+      .catch(() => {});
+  }
+
+  return enrichedAlert;
+};
+
+const enrichAgentMapLocation = async (agent = {}) => {
+  if (!agent?.codigo || isExactMapLocation(agent.mapa)) {
+    return agent;
+  }
+
+  const locationText = String(agent.ubicacionExacta || agent.zona || '').trim();
+
+  if (!locationText) {
+    return agent;
+  }
+
+  const resolvedMapLocation = await geocodeLocation(locationText, {
+    type: agent.ubicacionExacta ? 'address' : 'zone',
+  });
+
+  if (!resolvedMapLocation) {
+    return agent;
+  }
+
+  const enrichedAgent = {
+    ...agent,
+    mapa: resolvedMapLocation,
+    ultimaUbicacionTexto:
+      agent.ubicacionExacta || resolvedMapLocation.label || resolvedMapLocation.query || agent.zona || '',
+  };
+
+  if (
+    !areMapLocationsEquivalent(agent.mapa, resolvedMapLocation) ||
+    String(agent.ultimaUbicacionTexto || '') !== String(enrichedAgent.ultimaUbicacionTexto || '')
+  ) {
+    await persistAgentRecord(agent.codigo, enrichedAgent).catch(() => {});
+  }
+
+  return enrichedAgent;
+};
+
+const persistAgentRecord = async (agentCode, agent) => {
+  await Promise.all([
+    db.collection(AGENTS_COLLECTION).doc(agentCode).set(agent, { merge: true }),
+    db.collection(AGENTS_MIRROR_COLLECTION).doc(agentCode).set(agent, { merge: true }),
+  ]);
+};
+
+const buildPublicAgent = (agent = {}) => ({
+  codigo: agent.codigo,
+  usuario: agent.usuario,
+  nombre: agent.nombre,
+  email: agent.email,
+  zona: agent.zona,
+  telefono: agent.telefono,
+  estado: agent.estado,
+  mapa: agent.mapa || null,
+  uid: agent.uid,
+  ubicacionExacta: agent.ubicacionExacta || '',
+  ultimaUbicacionTexto:
+    agent.ultimaUbicacionTexto || agent.ubicacionExacta || agent.mapa?.label || agent.zona || '',
+  ultimaConexionAt: agent.ultimaConexionAt || null,
+  createdAt: agent.createdAt || null,
+  updatedAt: agent.updatedAt || null,
+});
+
+const buildAgentPresencePatch = async (
+  agent,
+  payload,
+  { fallbackText = '', fallbackType = 'address' } = {}
+) => {
+  const now = new Date().toISOString();
+  const { exactAddress } = extractLocationPayload(payload);
+  const resolvedMapLocation = await resolveMapLocationFromPayload(payload, {
+    fallbackText,
+    fallbackType,
+  });
+
+  const patch = {
+    ultimaConexionAt: now,
+    updatedAt: now,
+  };
+
+  if (resolvedMapLocation) {
+    patch.mapa = resolvedMapLocation;
+    patch.ubicacionExacta = exactAddress || agent.ubicacionExacta || '';
+    patch.ultimaUbicacionTexto =
+      exactAddress ||
+      resolvedMapLocation.label ||
+      resolvedMapLocation.query ||
+      agent.ultimaUbicacionTexto ||
+      agent.zona ||
+      '';
+  }
+
+  return patch;
+};
+
+const findAgentDocumentByUid = async (userId) => {
+  const snapshot = await db.collection(AGENTS_COLLECTION).where('uid', '==', userId).limit(1).get();
+
+  if (snapshot.empty) {
+    const error = new Error('No encontramos un agente vinculado a esta sesion.');
+    error.statusCode = 404;
+    throw error;
+  }
+
+  return snapshot.docs[0];
 };
 
 const normalizeAlertStatus = (status) => {
@@ -279,9 +543,18 @@ const listAlerts = async () => {
 
   const alertsById = new Map(mobileAlerts.map((alert) => [alert.id, alert]));
 
-  dashboardSnapshot.docs.forEach((doc) => {
-    const alert = doc.data();
-    alertsById.set(alert.id || doc.id, alert);
+  const dashboardAlerts = await Promise.all(
+    dashboardSnapshot.docs.map(async (doc) => {
+      const alert = doc.data() || {};
+      return enrichAlertMapLocation({
+        ...alert,
+        id: alert.id || doc.id,
+      });
+    })
+  );
+
+  dashboardAlerts.forEach((alert) => {
+    alertsById.set(alert.id, alert);
   });
 
   return sortByRecent(Array.from(alertsById.values()));
@@ -289,7 +562,11 @@ const listAlerts = async () => {
 
 const listAgents = async () => {
   const snapshot = await db.collection(AGENTS_COLLECTION).get();
-  return sortByRecent(snapshot.docs.map((doc) => doc.data()));
+  const agents = await Promise.all(
+    snapshot.docs.map(async (doc) => enrichAgentMapLocation(doc.data() || {}))
+  );
+
+  return sortByRecent(agents.map((agent) => buildPublicAgent(agent)));
 };
 
 const listNotifications = async () => {
@@ -302,6 +579,7 @@ const createAgent = async (userId, payload) => {
   const usuario = normalizeAgentUsername(payload.usuario);
   const password = String(payload.password || '').trim();
   const zona = String(payload.zona || '').trim();
+  const ubicacionExacta = String(payload.ubicacionExacta || '').trim();
   const telefono = String(payload.telefono || '').trim();
   const codigo = normalizeAgentCode(payload.codigo);
   const email = payload.email;
@@ -342,7 +620,9 @@ const createAgent = async (userId, payload) => {
   }
 
   const agentEmail = email?.trim().toLowerCase() || buildAgentInternalEmail(agentCodigo, usuario);
-  const mapa = await geocodeLocation(zona, { type: 'zone' });
+  const mapa = await geocodeLocation(ubicacionExacta || zona, {
+    type: ubicacionExacta ? 'address' : 'zone',
+  });
 
   let userRecord;
   try {
@@ -360,9 +640,12 @@ const createAgent = async (userId, payload) => {
       nombre,
       email: agentEmail,
       zona,
+      ubicacionExacta,
       telefono,
       estado: 'Disponible',
       mapa,
+      ultimaUbicacionTexto: ubicacionExacta || mapa?.label || zona,
+      ultimaConexionAt: null,
       uid: userRecord.uid,
       createdBy: userId,
       createdAt: now,
@@ -390,7 +673,7 @@ const createAgent = async (userId, payload) => {
       db.collection(USERS_COLLECTION).doc(userRecord.uid).set(mobileProfile, { merge: true }),
     ]);
 
-    return agent;
+    return buildPublicAgent(agent);
   } catch (error) {
     if (userRecord?.uid) {
       await auth.deleteUser(userRecord.uid).catch(() => {});
@@ -426,18 +709,42 @@ const resolveAgentAccess = async (payload) => {
     throw error;
   }
 
-  return {
-    email: agent.email,
-    agent: {
-      codigo: agent.codigo,
-      usuario: agent.usuario,
-      nombre: agent.nombre,
-      zona: agent.zona,
-      telefono: agent.telefono,
-      estado: agent.estado,
-      uid: agent.uid,
-    },
+  const updatedAgent = {
+    ...agent,
+    ...(await buildAgentPresencePatch(agent, payload)),
   };
+
+  await persistAgentRecord(agent.codigo, updatedAgent);
+
+  return {
+    email: updatedAgent.email,
+    agent: buildPublicAgent(updatedAgent),
+  };
+};
+
+const updateAuthenticatedAgentLocation = async (userId, payload) => {
+  if (!userId) {
+    const error = new Error('No encontramos una sesion valida para el agente.');
+    error.statusCode = 401;
+    throw error;
+  }
+
+  const agentDoc = await findAgentDocumentByUid(userId);
+  const agent = agentDoc.data() || {};
+  const fallbackText = String(payload.ubicacionExacta || agent.ubicacionExacta || agent.zona || '').trim();
+  const fallbackType = payload.ubicacionExacta ? 'address' : 'zone';
+  const patch = await buildAgentPresencePatch(agent, payload, {
+    fallbackText,
+    fallbackType,
+  });
+  const updatedAgent = {
+    ...agent,
+    ...patch,
+  };
+
+  await persistAgentRecord(agent.codigo, updatedAgent);
+
+  return buildPublicAgent(updatedAgent);
 };
 
 const deleteAgent = async (codigo) => {
@@ -826,12 +1133,9 @@ const updateAgentStatus = async (agentCode) => {
     updatedAt: new Date().toISOString(),
   };
 
-  await Promise.all([
-    agentRef.set(updatedAgent, { merge: true }),
-    db.collection(AGENTS_MIRROR_COLLECTION).doc(agentCode).set(updatedAgent, { merge: true }),
-  ]);
+  await persistAgentRecord(agentCode, updatedAgent);
 
-  return updatedAgent;
+  return buildPublicAgent(updatedAgent);
 };
 
 const markNotificationAsRead = async (notificationId) => {
@@ -890,6 +1194,7 @@ module.exports = {
   finalizeAlert,
   cancelAlert,
   resolveAgentAccess,
+  updateAuthenticatedAgentLocation,
   updateAgentStatus,
   createAgent,
   deleteAgent,

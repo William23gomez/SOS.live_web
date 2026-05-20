@@ -109,40 +109,24 @@
               <div class="map-toolbar">
                 <div class="map-chip">Seguimiento cada segundo</div>
                 <div class="map-chip">Cobertura: Bogota y alrededores</div>
+                <div class="map-chip">Solo puntos con coordenadas reales</div>
                 <div class="map-chip">Referencia activa: {{ mapContextLabel }}</div>
-                <div class="map-chip">Alertas monitoreadas: {{ filteredAlerts.length }}</div>
+                <div class="map-chip" *ngIf="activeMapCoordinatesLabel">Coordenadas: {{ activeMapCoordinatesLabel }}</div>
+                <div class="map-chip">Alertas monitoreadas: {{ operationalAlertsCount }}</div>
                 <a class="map-open-link" [href]="externalMapUrl" target="_blank" rel="noopener noreferrer">
                   Abrir mapa real
                 </a>
               </div>
 
               <div class="map-stage">
-                <iframe
-                  class="map-iframe"
-                  [src]="realMapUrl"
-                  title="Mapa operativo real SOS.LIVE"
-                  loading="lazy"
-                  referrerpolicy="no-referrer-when-downgrade"></iframe>
-
-                <button
-                  *ngFor="let pin of mapPins; let i = index"
-                  type="button"
-                  class="map-pin"
-                  [class.map-pin-safe]="pin.tipo === 'cobertura'"
-                  [style.top]="pin.top"
-                  [style.left]="pin.left"
-                  [style.animationDelay]="i * 0.35 + 's'"
-                  (click)="focusAlertFromMap(pin.alertId)">
-                  <i [class]="'bi ' + pin.icon"></i>
-                  <span class="map-tooltip">{{ pin.etiqueta }}</span>
-                </button>
+                <div #operationalMapContainer class="map-canvas" aria-label="Mapa operativo exacto SOS.LIVE"></div>
               </div>
 
               <div class="map-footer-grid">
                 <article class="mini-card">
                   <p class="footer-label">Alertas recientes</p>
                   <div class="mini-list">
-                    <button type="button" class="mini-row mini-row-button" *ngFor="let alert of recentAlerts.slice(0, 3)" (click)="focusAlertFromMap(alert.id)">
+                    <button type="button" class="mini-row mini-row-button" *ngFor="let alert of operationalAlerts.slice(0, 3)" (click)="focusAlertFromMap(alert.id)">
                       <div class="mini-row-main">
                         <strong>{{ alert.usuario }}</strong>
                         <span class="mini-row-meta">{{ alert.tipo }} | {{ alert.hora }}</span>
@@ -152,7 +136,7 @@
                         {{ normalizeAlertStatus(alert.estado) }}
                       </span>
                     </button>
-                    <div class="mini-row" *ngIf="recentAlerts.length === 0">
+                    <div class="mini-row" *ngIf="operationalAlerts.length === 0">
                       <div class="mini-row-main">
                         <strong>Sin alertas</strong>
                         <span class="mini-row-note">No hay alertas registradas.</span>
@@ -168,7 +152,8 @@
                       <div class="mini-row-main">
                         <strong>{{ agent.nombre }}</strong>
                         <span class="mini-row-meta">{{ agent.zona }}</span>
-                        <span class="mini-row-note">{{ agent.telefono || agent.email || 'Agente activo' }}</span>
+                        <span class="mini-row-note">{{ getAgentLocationLabel(agent) }}</span>
+                        <span class="mini-row-note">Ultimo acceso: {{ getAgentLastSeenLabel(agent) }}</span>
                       </div>
                       <span class="mini-status-pill" [class.mini-status-pill-busy]="agent.estado !== 'Disponible'">
                         {{ agent.estado }}
@@ -386,6 +371,7 @@
               <input class="toolbar-input" type="password" name="agentPassword" placeholder="Contraseña" [(ngModel)]="newAgentForm.password" required>
               <input class="toolbar-input" type="text" name="agentCodigo" placeholder="Codigo de acceso" [(ngModel)]="newAgentForm.codigo" required>
               <input class="toolbar-input" type="text" name="agentZona" placeholder="Zona o sector (ej. Sur, Kennedy, Suba)" [(ngModel)]="newAgentForm.zona" required>
+              <input class="toolbar-input" type="text" name="agentUbicacionExacta" placeholder="Direccion o punto exacto (opcional)" [(ngModel)]="newAgentForm.ubicacionExacta">
               <input class="toolbar-input" type="text" name="agentTelefono" placeholder="Teléfono" [(ngModel)]="newAgentForm.telefono" (input)="onlyNumbersAgent()" required>
               <button type="submit" class="btn btn-gold" [disabled]="isCreatingAgent">
                 {{ isCreatingAgent ? 'Guardando...' : 'Agregar agente' }}
@@ -402,6 +388,8 @@
               <p>Código: {{ agent.codigo }}</p>
               <p>Usuario: {{ agent.usuario || 'Sin usuario' }}</p>
               <p>Zona: {{ agent.zona }}</p>
+              <p>Ubicacion exacta: {{ getAgentLocationLabel(agent) }}</p>
+              <p>Ultimo acceso: {{ getAgentLastSeenLabel(agent) }}</p>
               <p>Teléfono: {{ agent.telefono }}</p>
               <div class="agent-card-actions">
                 <button type="button" class="btn btn-outline-light btn-sm" (click)="toggleAgentStatus(agent.codigo)">

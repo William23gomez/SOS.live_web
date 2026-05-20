@@ -105,6 +105,19 @@ const updateAgentStatus = async (req, res, next) => {
   }
 };
 
+const updateAuthenticatedAgentLocation = async (req, res, next) => {
+  try {
+    const agent = await operationsService.updateAuthenticatedAgentLocation(req.user.id, req.body);
+
+    res.status(200).json({
+      message: 'Ubicacion del agente actualizada correctamente.',
+      agent,
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
 const createAgent = async (req, res, next) => {
   try {
     const agent = await operationsService.createAgent(req.user.id, req.body);
@@ -176,6 +189,7 @@ module.exports = {
   finalizeAlert,
   cancelAlert,
   updateAgentStatus,
+  updateAuthenticatedAgentLocation,
   resolveAgentAccess,
   createAgent,
   deleteAgent,

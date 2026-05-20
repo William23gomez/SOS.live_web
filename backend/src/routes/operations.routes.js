@@ -14,6 +14,7 @@ router.get('/agents', operationsController.listAgents);
 router.get('/notifications', operationsController.listNotifications);
 router.post('/alerts', operationsController.createAlert);
 router.post('/agents', operationsController.createAgent);
+router.patch('/agents/location', operationsController.updateAuthenticatedAgentLocation);
 router.put('/alerts/:alertId/assign', operationsController.assignAgentToAlert);
 router.patch('/alerts/:alertId/finalize', operationsController.finalizeAlert);
 router.patch('/alerts/:alertId/cancel', operationsController.cancelAlert);

@@ -15,7 +15,10 @@ export interface DashboardMapLocation {
   lng?: number;
   label?: string;
   query?: string;
-  source?: 'geocoded' | 'heuristic' | 'unresolved';
+  source?: 'geocoded' | 'heuristic' | 'unresolved' | 'device';
+  precision?: 'exact' | 'approximate';
+  score?: number;
+  matchType?: string;
 }
 
 export interface DashboardAlert {
@@ -37,6 +40,9 @@ export interface DashboardAgent {
   nombre: string;
   estado: 'Disponible' | 'En servicio';
   zona: string;
+  ubicacionExacta?: string;
+  ultimaUbicacionTexto?: string;
+  ultimaConexionAt?: string | null;
   telefono: string;
   email?: string;
   mapa?: DashboardMapLocation | null;
@@ -132,8 +138,16 @@ export class DashboardDataService {
     await setDoc(doc(db, 'dashboard_alerts', item.id), item, { merge: true });
   }
 
+  async patchAlert(id: string, patch: Partial<DashboardAlert>) {
+    await setDoc(doc(db, 'dashboard_alerts', id), patch, { merge: true });
+  }
+
   async saveAgent(item: DashboardAgent) {
     await setDoc(doc(db, 'dashboard_agents', item.codigo), item, { merge: true });
+  }
+
+  async patchAgent(codigo: string, patch: Partial<DashboardAgent>) {
+    await setDoc(doc(db, 'dashboard_agents', codigo), patch, { merge: true });
   }
 
   async saveNotification(item: DashboardNotification) {

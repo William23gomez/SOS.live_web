@@ -368,11 +368,21 @@
     gap: 10px;
     flex-wrap: wrap;
     margin-bottom: 16px;
+    min-width: 0;
+}
+
+.map-chip,
+.map-open-link {
+    display: inline-flex;
+    align-items: center;
+    min-width: 0;
+    max-width: 100%;
+    overflow-wrap: anywhere;
+    word-break: break-word;
+    white-space: normal;
 }
 
 .map-chip {
-    display: inline-flex;
-    align-items: center;
     padding: 9px 12px;
     border-radius: 999px;
     background: rgba(255, 255, 255, 0.06);
@@ -381,8 +391,6 @@
 }
 
 .map-open-link {
-    display: inline-flex;
-    align-items: center;
     padding: 9px 14px;
     border-radius: 999px;
     background: rgba(212, 175, 55, 0.16);
@@ -398,6 +406,14 @@
     background: rgba(212, 175, 55, 0.24);
     color: #fff0af;
     transform: translateY(-1px);
+}
+
+.leaflet-container,
+.leaflet-pane,
+.leaflet-top,
+.leaflet-bottom,
+.leaflet-control {
+    max-width: 100%;
 }
 
 .map-legend {
@@ -425,6 +441,68 @@
         linear-gradient(180deg, rgba(5, 17, 28, 0.05), rgba(5, 17, 28, 0.5)),
         #071624;
     border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.map-canvas {
+    width: 100%;
+    min-height: 360px;
+    height: 100%;
+}
+
+.map-stage .leaflet-container {
+    width: 100%;
+    height: 100%;
+    min-height: 360px;
+    background: #0a1e30;
+    filter: saturate(0.92) contrast(1.02) brightness(0.88);
+}
+
+.map-stage .leaflet-control-zoom a,
+.map-stage .leaflet-popup-content-wrapper,
+.map-stage .leaflet-popup-tip {
+    background: rgba(3, 17, 29, 0.96);
+    color: #f8fbff;
+}
+
+.map-stage .leaflet-control-zoom a {
+    border-color: rgba(255, 255, 255, 0.14);
+}
+
+.map-stage .leaflet-control-attribution {
+    background: rgba(3, 17, 29, 0.72);
+    color: rgba(233, 239, 246, 0.74);
+}
+
+.map-stage .leaflet-control-attribution a {
+    color: #ffe08a;
+}
+
+.custom-map-marker-shell {
+    background: transparent;
+    border: 0;
+}
+
+.custom-map-marker {
+    width: 38px;
+    height: 38px;
+    border-radius: 50%;
+    display: grid;
+    place-items: center;
+    color: #fff;
+    box-shadow: 0 12px 25px rgba(3, 17, 29, 0.35);
+    border: 2px solid rgba(255, 255, 255, 0.14);
+}
+
+.custom-map-marker-alert {
+    background: linear-gradient(135deg, #ff9a5a, #ff6e5d);
+}
+
+.custom-map-marker-agent {
+    background: linear-gradient(135deg, #33d38e, #22b6a7);
+}
+
+.custom-map-marker-company {
+    background: linear-gradient(135deg, #5878ff, #2fb0ff);
 }
 
 .map-image {

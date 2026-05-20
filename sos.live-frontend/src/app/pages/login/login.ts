@@ -1,4 +1,4 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, NgZone, OnInit } from '@angular/core';
 import { ActivatedRoute } from '@angular/router';
 import { Router } from '@angular/router';
 
@@ -34,7 +34,8 @@ export class Login implements OnInit {
   constructor(
     private readonly route: ActivatedRoute,
     private readonly authService: AuthService,
-    private readonly router: Router
+    private readonly router: Router,
+    private readonly ngZone: NgZone
   ) {
     const queryParams = this.route.snapshot.queryParamMap;
     const requestedMode = queryParams.get('mode');
@@ -74,6 +75,26 @@ export class Login implements OnInit {
         pendingEmail
           ? `Te enviamos un correo de verificaci\u00f3n a ${pendingEmail}. Revisa tu bandeja y spam antes de iniciar sesi\u00f3n.`
           : 'Te enviamos un correo de verificaci\u00f3n. Revisa tu bandeja y spam antes de iniciar sesi\u00f3n.',
+        'success'
+      );
+      return;
+    }
+
+    if (this.requestedNotice === 'reset-sent') {
+      this.showFeedback(
+        this.requestedEmail
+          ? `Te enviamos un correo de recuperacion a ${this.requestedEmail}. Usa el ultimo enlace recibido para cambiar la contrasena y luego ingresala aqui para iniciar sesion.`
+          : 'Te enviamos un correo de recuperacion. Usa el ultimo enlace recibido para cambiar la contrasena y luego ingresala aqui para iniciar sesion.',
+        'success'
+      );
+      return;
+    }
+
+    if (this.requestedNotice === 'reset-complete') {
+      this.showFeedback(
+        this.requestedEmail
+          ? `La contrasena de ${this.requestedEmail} ya fue actualizada. Ahora puedes iniciar sesion.`
+          : 'La contrasena ya fue actualizada. Ahora puedes iniciar sesion.',
         'success'
       );
       return;
@@ -223,16 +244,34 @@ export class Login implements OnInit {
         handleCodeInApp: false,
       });
 
-      await this.router.navigate(['/reset-password'], {
-        queryParams: {
-          notice: 'sent',
-          email,
-        },
+      this.ngZone.run(() => {
+        this.isSendingResetEmail = false;
+        this.requestedNotice = 'reset-sent';
+        this.requestedEmail = email.trim().toLowerCase();
+        this.formData.email = this.requestedEmail;
+        this.showFeedback(
+          `Te enviamos un correo de recuperacion a ${this.requestedEmail}. Usa el ultimo enlace recibido para cambiar la contrasena y luego ingresala aqui para iniciar sesion.`,
+          'success'
+        );
+
+        void this.router.navigate([], {
+          relativeTo: this.route,
+          queryParams: {
+            mode: 'empresa',
+            notice: 'reset-sent',
+            email: this.requestedEmail,
+          },
+          replaceUrl: true,
+        });
       });
     } catch (error) {
-      this.showFeedback(this.authService.traducirErrorFirebase(error), 'error');
+      this.ngZone.run(() => {
+        this.showFeedback(this.authService.traducirErrorFirebase(error), 'error');
+      });
     } finally {
-      this.isSendingResetEmail = false;
+      this.ngZone.run(() => {
+        this.isSendingResetEmail = false;
+      });
     }
   }
 

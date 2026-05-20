@@ -1,8 +1,8 @@
-import { ChangeDetectorRef, Component, NgZone, OnDestroy, OnInit } from '@angular/core';
-import { DomSanitizer, SafeResourceUrl } from '@angular/platform-browser';
+import { ChangeDetectorRef, Component, ElementRef, NgZone, OnDestroy, OnInit, ViewChild } from '@angular/core';
 import { NavigationEnd, Router } from '@angular/router';
 import { onAuthStateChanged, Unsubscribe, User } from 'firebase/auth';
 import { Subscription } from 'rxjs';
+import * as L from 'leaflet';
 
 import { AuthService } from '../../core/auth.service';
 import {
@@ -16,8 +16,6 @@ import {
 } from '../../core/dashboard-data.service';
 import {
   getMapQueryLabel,
-  OPERATIONAL_MAP_EMBED_URL,
-  projectMapLocation,
   resolveAgentMapLocation,
   resolveAlertMapLocation,
   resolveCompanyMapLocation,
@@ -44,6 +42,18 @@ const SECTION_ROUTE_MAP: Record<DashboardSection, string> = {
   notifications: '/notificaciones',
 };
 
+const DEFAULT_MAP_CENTER: L.LatLngTuple = [4.6097, -74.0817];
+const DEFAULT_MAP_ZOOM = 11;
+const SINGLE_MARKER_FOCUS_ZOOM = 18;
+const MULTI_MARKER_MAX_FIT_ZOOM = 17;
+
+type OperationalMapMarker = {
+  kind: 'alerta' | 'agente' | 'sede';
+  label: string;
+  location: { lat: number; lng: number };
+  alertId: string | null;
+};
+
 @Component({
   selector: 'app-dashboard',
   standalone: false,
@@ -51,6 +61,20 @@ const SECTION_ROUTE_MAP: Record<DashboardSection, string> = {
   styleUrl: './dashboard.css',
 })
 export class Dashboard implements OnInit, OnDestroy {
+  @ViewChild('operationalMapContainer')
+  set operationalMapContainerRef(element: ElementRef<HTMLDivElement> | undefined) {
+    this.operationalMapHost = element?.nativeElement;
+
+    if (this.operationalMapHost) {
+      setTimeout(() => {
+        this.initializeOperationalMap();
+      }, 0);
+      return;
+    }
+
+    this.destroyOperationalMap();
+  }
+
   activeSection: DashboardSection = 'overview';
 
   formData = {
@@ -79,6 +103,7 @@ export class Dashboard implements OnInit, OnDestroy {
     password: '',
     codigo: '',
     zona: '',
+    ubicacionExacta: '',
     telefono: '',
   };
 
@@ -118,11 +143,16 @@ export class Dashboard implements OnInit, OnDestroy {
   private operationsSyncInterval?: ReturnType<typeof setInterval>;
   private dashboardUnsubscribes: Unsubscribe[] = [];
   private navigationSubscription?: Subscription;
+  private operationalMap?: L.Map;
+  private operationalMapLayer?: L.LayerGroup;
+  private operationalMapHost?: HTMLDivElement;
+  private lastOperationalMapSignature = '';
+  private operationalMapViewportPinned = false;
+  private isApplyingOperationalViewport = false;
 
   constructor(
     private readonly zone: NgZone,
     private readonly cdr: ChangeDetectorRef,
-    private readonly sanitizer: DomSanitizer,
     private readonly authService: AuthService,
     private readonly dashboardDataService: DashboardDataService,
     private readonly operationsService: OperationsService,
@@ -170,6 +200,7 @@ export class Dashboard implements OnInit, OnDestroy {
     this.unsubscribeAuth?.();
     this.navigationSubscription?.unsubscribe();
     this.dashboardUnsubscribes.forEach((unsubscribe) => unsubscribe());
+    this.destroyOperationalMap();
     if (this.liveInterval) {
       clearInterval(this.liveInterval);
     }
@@ -286,11 +317,30 @@ export class Dashboard implements OnInit, OnDestroy {
     return this.selectedAlert ? this.normalizeAlertStatus(this.selectedAlert.estado) : 'En proceso';
   }
 
+  get operationalAlerts() {
+    return this.recentAlerts.filter((alert) => this.isAlertVisibleOnMap(alert));
+  }
+
+  get operationalAlertsCount() {
+    return this.operationalAlerts.length;
+  }
+
+  get activeOperationalAlert() {
+    if (this.isAlertVisibleOnMap(this.selectedAlert)) {
+      return this.selectedAlert;
+    }
+
+    return this.operationalAlerts[0] || null;
+  }
+
   get mapQuery() {
     if (this.activeSection === 'agents') {
+      const activeAgent = this.selectedAgent || this.agents[0];
       return getMapQueryLabel(
-        resolveAgentMapLocation(this.selectedAgent || this.agents[0]),
-        this.selectedAgent?.zona || this.agents[0]?.zona || this.companyData.direccion || 'Bogota Colombia'
+        resolveAgentMapLocation(activeAgent),
+        (activeAgent ? this.getAgentLocationLabel(activeAgent) : '') ||
+          this.companyData.direccion ||
+          'Bogota Colombia'
       );
     }
 
@@ -302,9 +352,8 @@ export class Dashboard implements OnInit, OnDestroy {
     }
 
     return getMapQueryLabel(
-      resolveAlertMapLocation(this.selectedAlert || this.recentAlerts[0]),
-      this.selectedAlert?.ubicacion ||
-        this.recentAlerts[0]?.ubicacion ||
+      resolveAlertMapLocation(this.activeOperationalAlert),
+      this.activeOperationalAlert?.ubicacion ||
         this.selectedAgent?.zona ||
         this.agents[0]?.zona ||
         this.companyData.direccion ||
@@ -316,84 +365,42 @@ export class Dashboard implements OnInit, OnDestroy {
     return this.mapQuery || 'Bogotá, Colombia';
   }
 
-  get realMapUrl(): SafeResourceUrl {
-    return this.sanitizer.bypassSecurityTrustResourceUrl(OPERATIONAL_MAP_EMBED_URL);
+  get activeMapLocation() {
+    if (this.activeSection === 'agents') {
+      return resolveAgentMapLocation(this.selectedAgent || this.agents[0]);
+    }
+
+    if (this.activeSection === 'company') {
+      return resolveCompanyMapLocation(this.companyData);
+    }
+
+    return resolveAlertMapLocation(this.activeOperationalAlert);
+  }
+
+  get activeMapCoordinatesLabel() {
+    const location = this.activeMapLocation;
+
+    if (!this.hasMapCoordinates(location)) {
+      return '';
+    }
+
+    const lat = Number(location?.lat);
+    const lng = Number(location?.lng);
+
+    return `${lat.toFixed(6)}, ${lng.toFixed(6)}`;
   }
 
   get externalMapUrl() {
+    const location = this.activeMapLocation;
+
+    if (this.hasMapCoordinates(location)) {
+      const lat = Number(location?.lat);
+      const lng = Number(location?.lng);
+      return `https://www.google.com/maps/search/?api=1&query=${lat},${lng}`;
+    }
+
     const query = encodeURIComponent(this.mapQuery);
     return `https://www.google.com/maps/search/?api=1&query=${query}`;
-  }
-
-  get hasMapLocation() {
-    return !!(this.selectedAlert?.ubicacion || this.companyData.direccion);
-  }
-
-  get mapPins() {
-    const prioritizedAlerts = this.selectedAlert
-      ? [this.selectedAlert, ...this.recentAlerts.filter((alert) => alert.id !== this.selectedAlert?.id)]
-      : this.recentAlerts;
-    const prioritizedAgents = this.selectedAgent
-      ? [this.selectedAgent, ...this.agents.filter((agent) => agent.codigo !== this.selectedAgent?.codigo)]
-      : this.agents;
-
-    const alertPins = prioritizedAlerts
-      .slice(0, 4)
-      .map((alert, index) => {
-        const position = projectMapLocation(resolveAlertMapLocation(alert), index);
-
-        if (!position) {
-          return null;
-        }
-
-        return {
-          ...position,
-          tipo: 'alerta' as const,
-          icon: 'bi-exclamation-diamond-fill',
-          etiqueta: `${alert.tipo} - ${alert.ubicacion}`,
-          alertId: alert.id,
-        };
-      })
-      .filter((pin): pin is NonNullable<typeof pin> => !!pin);
-
-    const agentPins = prioritizedAgents
-      .slice(0, 4)
-      .map((agent, index) => {
-        const position = projectMapLocation(resolveAgentMapLocation(agent), index + alertPins.length);
-
-        if (!position) {
-          return null;
-        }
-
-        return {
-          ...position,
-          tipo: 'cobertura' as const,
-          icon: 'bi-broadcast-pin',
-          etiqueta: `${agent.nombre} - ${agent.zona}`,
-          alertId: null,
-        };
-      })
-      .filter((pin): pin is NonNullable<typeof pin> => !!pin);
-
-    if (alertPins.length || agentPins.length) {
-      return [...alertPins, ...agentPins];
-    }
-
-    const companyPosition = projectMapLocation(resolveCompanyMapLocation(this.companyData));
-
-    if (!companyPosition || !this.companyData.direccion) {
-      return [];
-    }
-
-    return [
-      {
-        ...companyPosition,
-        tipo: 'cobertura' as const,
-        icon: 'bi-building-fill',
-        etiqueta: `Sede - ${this.companyData.direccion}`,
-        alertId: null,
-      },
-    ];
   }
 
   get availableAgents() {
@@ -482,6 +489,8 @@ export class Dashboard implements OnInit, OnDestroy {
   selectAlert(alertId: string) {
     this.selectedAlertId = alertId;
     this.syncSelectedAgentSelection();
+    this.resetOperationalMapViewport();
+    this.refreshOperationalMap(true);
   }
 
   focusAlertFromMap(alertId: string | null) {
@@ -714,7 +723,7 @@ export class Dashboard implements OnInit, OnDestroy {
   }
 
   async createAgent() {
-    const { nombre, usuario, password, codigo, zona, telefono } = this.newAgentForm;
+    const { nombre, usuario, password, codigo, zona, ubicacionExacta, telefono } = this.newAgentForm;
 
     if (!nombre || !usuario || !password || !codigo || !zona || !telefono) {
       this.showFeedback('Completa todos los campos del agente.', 'error');
@@ -749,6 +758,7 @@ export class Dashboard implements OnInit, OnDestroy {
         password,
         codigo,
         zona,
+        ubicacionExacta,
         telefono,
       };
       const result = await Promise.race([
@@ -772,6 +782,7 @@ export class Dashboard implements OnInit, OnDestroy {
         password: '',
         codigo: '',
         zona: '',
+        ubicacionExacta: '',
         telefono: '',
       };
       this.showFeedback(
@@ -790,6 +801,7 @@ export class Dashboard implements OnInit, OnDestroy {
           password: '',
           codigo: '',
           zona: '',
+          ubicacionExacta: '',
           telefono: '',
         };
         this.showFeedback(
@@ -1116,6 +1128,7 @@ export class Dashboard implements OnInit, OnDestroy {
             telefono: item.telefono || this.companyData.telefono || this.formData.telefono || '',
             nitEmpresa: item.nitEmpresa || this.companyData.nitEmpresa || this.formData.nit || '',
           };
+          this.refreshOperationalMap();
         });
       }),
     ];
@@ -1173,6 +1186,7 @@ export class Dashboard implements OnInit, OnDestroy {
     }
 
     this.syncSelectedAgentSelection();
+    this.refreshOperationalMap();
 
     this.cdr.detectChanges();
   }
@@ -1185,6 +1199,7 @@ export class Dashboard implements OnInit, OnDestroy {
     }
 
     this.syncSelectedAgentSelection();
+    this.refreshOperationalMap();
 
     this.cdr.detectChanges();
   }
@@ -1284,5 +1299,281 @@ export class Dashboard implements OnInit, OnDestroy {
     )?.[0] || 'overview') as DashboardSection;
 
     this.activeSection = matchedSection;
+    this.refreshOperationalMap(true);
+  }
+
+  getAgentLocationLabel(agent: DashboardAgent) {
+    return (
+      agent.ubicacionExacta ||
+      agent.ultimaUbicacionTexto ||
+      agent.mapa?.label ||
+      agent.mapa?.query ||
+      agent.zona
+    );
+  }
+
+  getAgentLastSeenLabel(agent: DashboardAgent) {
+    if (!agent.ultimaConexionAt) {
+      return 'Sin registro de acceso reciente';
+    }
+
+    const parsedDate = new Date(agent.ultimaConexionAt);
+
+    if (Number.isNaN(parsedDate.getTime())) {
+      return 'Sin registro de acceso reciente';
+    }
+
+    return parsedDate.toLocaleString('es-CO', {
+      dateStyle: 'short',
+      timeStyle: 'short',
+    });
+  }
+
+  private initializeOperationalMap() {
+    if (!this.operationalMapHost) {
+      return;
+    }
+
+    if (this.operationalMap) {
+      setTimeout(() => this.operationalMap?.invalidateSize(), 0);
+      this.refreshOperationalMap();
+      return;
+    }
+
+    this.operationalMap = L.map(this.operationalMapHost, {
+      zoomControl: true,
+      attributionControl: true,
+      minZoom: 5,
+      maxZoom: 22,
+      scrollWheelZoom: true,
+      doubleClickZoom: true,
+      dragging: true,
+      touchZoom: true,
+      boxZoom: true,
+    }).setView(DEFAULT_MAP_CENTER, DEFAULT_MAP_ZOOM);
+
+    this.operationalMap.on('movestart zoomstart', () => {
+      if (!this.isApplyingOperationalViewport) {
+        this.operationalMapViewportPinned = true;
+      }
+    });
+
+    L.tileLayer(
+      'https://server.arcgisonline.com/ArcGIS/rest/services/World_Street_Map/MapServer/tile/{z}/{y}/{x}',
+      {
+        attribution:
+          'Tiles &copy; Esri, HERE, Garmin, USGS, OpenStreetMap contributors, and the GIS User Community',
+        maxZoom: 22,
+      }
+    ).addTo(this.operationalMap);
+
+    this.operationalMapLayer = L.layerGroup().addTo(this.operationalMap);
+    this.refreshOperationalMap(true);
+  }
+
+  private destroyOperationalMap() {
+    this.operationalMapLayer?.clearLayers();
+    this.operationalMapLayer = undefined;
+    this.operationalMap?.remove();
+    this.operationalMap = undefined;
+    this.lastOperationalMapSignature = '';
+  }
+
+  private refreshOperationalMap(forceRefresh = false) {
+    if (!this.operationalMap || !this.operationalMapLayer) {
+      return;
+    }
+
+    const markers = this.buildOperationalMapMarkers();
+    const signature = JSON.stringify(
+      markers.map((marker) => ({
+        kind: marker.kind,
+        lat: marker.location.lat,
+        lng: marker.location.lng,
+        label: marker.label,
+        alertId: marker.alertId,
+      }))
+    );
+
+    if (!forceRefresh && signature === this.lastOperationalMapSignature) {
+      return;
+    }
+
+    this.lastOperationalMapSignature = signature;
+    this.operationalMapLayer.clearLayers();
+
+    if (!markers.length) {
+      this.applyOperationalViewport(() => {
+        this.operationalMap?.setView(DEFAULT_MAP_CENTER, DEFAULT_MAP_ZOOM, {
+          animate: false,
+        });
+      });
+      setTimeout(() => this.operationalMap?.invalidateSize(), 0);
+      return;
+    }
+
+    const bounds = L.latLngBounds([]);
+
+    markers.forEach((marker, index) => {
+      const markerRef = L.marker([marker.location.lat, marker.location.lng], {
+        icon: this.buildLeafletMarkerIcon(marker.kind),
+      });
+
+      markerRef.bindPopup(marker.label, {
+        closeButton: false,
+        autoPan: true,
+      });
+
+      if (marker.alertId) {
+        markerRef.on('click', () => {
+          this.zone.run(() => {
+            this.focusAlertFromMap(marker.alertId);
+          });
+        });
+      }
+
+      markerRef.addTo(this.operationalMapLayer!);
+      bounds.extend(markerRef.getLatLng());
+
+      if (index === 0 && (forceRefresh || !this.operationalMapViewportPinned)) {
+        markerRef.openPopup();
+      }
+    });
+
+    if (forceRefresh || !this.operationalMapViewportPinned) {
+      this.applyOperationalViewport(() => {
+        if (markers.length === 1) {
+          this.operationalMap?.setView(bounds.getCenter(), SINGLE_MARKER_FOCUS_ZOOM, {
+            animate: false,
+          });
+          return;
+        }
+
+        this.operationalMap?.fitBounds(bounds.pad(0.12), {
+          maxZoom: MULTI_MARKER_MAX_FIT_ZOOM,
+          animate: false,
+        });
+      });
+    }
+
+    setTimeout(() => this.operationalMap?.invalidateSize(), 0);
+  }
+
+  private buildLeafletMarkerIcon(kind: OperationalMapMarker['kind']) {
+    const iconClass =
+      kind === 'alerta'
+        ? 'custom-map-marker-alert'
+        : kind === 'agente'
+          ? 'custom-map-marker-agent'
+          : 'custom-map-marker-company';
+    const iconName =
+      kind === 'alerta'
+        ? 'bi-exclamation-diamond-fill'
+        : kind === 'agente'
+          ? 'bi-broadcast-pin'
+          : 'bi-building-fill';
+
+    return L.divIcon({
+      className: 'custom-map-marker-shell',
+      html: `<span class="custom-map-marker ${iconClass}"><i class="bi ${iconName}"></i></span>`,
+      iconSize: [38, 38],
+      iconAnchor: [19, 19],
+      popupAnchor: [0, -18],
+    });
+  }
+
+  private buildOperationalMapMarkers(): OperationalMapMarker[] {
+    const prioritizedAlerts = this.activeOperationalAlert
+      ? [
+          this.activeOperationalAlert,
+          ...this.operationalAlerts.filter((alert) => alert.id !== this.activeOperationalAlert?.id),
+        ]
+      : this.operationalAlerts;
+    const prioritizedAgents = this.selectedAgent
+      ? [this.selectedAgent, ...this.agents.filter((agent) => agent.codigo !== this.selectedAgent?.codigo)]
+      : this.agents;
+
+    const alertMarkers: OperationalMapMarker[] = [];
+    prioritizedAlerts.forEach((alert) => {
+      const location = resolveAlertMapLocation(alert);
+
+      if (!this.hasMapCoordinates(location)) {
+        return;
+      }
+
+      alertMarkers.push({
+        kind: 'alerta',
+        label: `${alert.tipo} - ${alert.ubicacion}`,
+        location: {
+          lat: Number(location?.lat),
+          lng: Number(location?.lng),
+        },
+        alertId: alert.id,
+      });
+    });
+
+    const agentMarkers: OperationalMapMarker[] = [];
+    prioritizedAgents.forEach((agent) => {
+      const location = resolveAgentMapLocation(agent);
+
+      if (!this.hasMapCoordinates(location)) {
+        return;
+      }
+
+      agentMarkers.push({
+        kind: 'agente',
+        label: `${agent.nombre} - ${this.getAgentLocationLabel(agent)}`,
+        location: {
+          lat: Number(location?.lat),
+          lng: Number(location?.lng),
+        },
+        alertId: null,
+      });
+    });
+
+    if (alertMarkers.length || agentMarkers.length) {
+      return [...alertMarkers.slice(0, 6), ...agentMarkers.slice(0, 6)];
+    }
+
+    const companyLocation = resolveCompanyMapLocation(this.companyData);
+
+    if (!this.hasMapCoordinates(companyLocation) || !this.companyData.direccion) {
+      return [];
+    }
+
+    return [
+      {
+        kind: 'sede',
+        label: `Sede - ${this.companyData.direccion}`,
+        location: {
+          lat: Number(companyLocation?.lat),
+          lng: Number(companyLocation?.lng),
+        },
+        alertId: null,
+      },
+    ];
+  }
+
+  private hasMapCoordinates(location: { lat?: number; lng?: number } | null | undefined) {
+    return Number.isFinite(Number(location?.lat)) && Number.isFinite(Number(location?.lng));
+  }
+
+  private isAlertVisibleOnMap(alert?: DashboardAlert | null) {
+    if (!alert) {
+      return false;
+    }
+
+    const normalizedStatus = this.normalizeAlertStatus(alert.estado);
+    return normalizedStatus !== 'Finalizado' && normalizedStatus !== 'Cancelado';
+  }
+
+  private resetOperationalMapViewport() {
+    this.operationalMapViewportPinned = false;
+  }
+
+  private applyOperationalViewport(applyView: () => void) {
+    this.isApplyingOperationalViewport = true;
+    applyView();
+    this.isApplyingOperationalViewport = false;
   }
 }

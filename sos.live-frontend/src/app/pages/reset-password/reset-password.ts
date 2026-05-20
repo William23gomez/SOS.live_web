@@ -37,12 +37,19 @@ export class ResetPassword implements OnInit {
     this.resetEmail = this.route.snapshot.queryParamMap.get('email') || '';
 
     if (this.route.snapshot.queryParamMap.get('notice') === 'sent') {
-      this.showFeedback(
-        this.resetEmail
-          ? `Te llegar\u00e1 un correo de recuperaci\u00f3n a ${this.resetEmail}. Revisa entrada, spam o promociones y abre ese enlace para cambiar la contrase\u00f1a.`
-          : 'Te llegar\u00e1 un correo de recuperaci\u00f3n. Revisa entrada, spam o promociones y abre ese enlace para cambiar la contrase\u00f1a.',
-        'success'
-      );
+      const queryParams: Record<string, string> = {
+        mode: 'empresa',
+        notice: 'reset-sent',
+      };
+
+      if (this.resetEmail.trim()) {
+        queryParams['email'] = this.resetEmail.trim().toLowerCase();
+      }
+
+      void this.router.navigate(['/login'], {
+        queryParams,
+        replaceUrl: true,
+      });
       return;
     }
 
@@ -98,7 +105,18 @@ export class ResetPassword implements OnInit {
       );
 
       setTimeout(() => {
-        void this.router.navigate(['/login']);
+        const queryParams: Record<string, string> = {
+          mode: 'empresa',
+          notice: 'reset-complete',
+        };
+
+        if (this.resetEmail.trim()) {
+          queryParams['email'] = this.resetEmail.trim().toLowerCase();
+        }
+
+        void this.router.navigate(['/login'], {
+          queryParams,
+        });
       }, 1200);
     } catch (error) {
       this.showFeedback(this.authService.traducirErrorFirebase(error), 'error');

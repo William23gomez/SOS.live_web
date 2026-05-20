@@ -5,6 +5,17 @@ import {
   DashboardMapLocation,
 } from './dashboard-data.service';
 
+type MapLocationResolverOptions = {
+  allowApproximate?: boolean;
+};
+
+type MapLocationRecord = Record<string, unknown>;
+
+const APPROXIMATE_LOCATION_SOURCES: DashboardMapLocation['source'][] = [
+  'heuristic',
+  'unresolved',
+];
+
 const BOGOTA_BOUNDS = {
   north: 4.8366,
   south: 4.472,
@@ -60,6 +71,104 @@ const normalizeText = (value = '') =>
 
 const clamp = (value: number, min: number, max: number) => Math.min(Math.max(value, min), max);
 
+const isRecord = (value: unknown): value is MapLocationRecord =>
+  typeof value === 'object' && value !== null && !Array.isArray(value);
+
+const toFiniteNumber = (value: unknown) => {
+  const parsedValue = Number(value);
+  return Number.isFinite(parsedValue) ? parsedValue : null;
+};
+
+const toLocationText = (value: unknown) =>
+  typeof value === 'string' ? value.trim() : '';
+
+const isApproximateLocation = (location: DashboardMapLocation | null | undefined) => {
+  if (!location) {
+    return true;
+  }
+
+  const precision = toLocationText(location?.precision).toLowerCase();
+
+  if (precision) {
+    return precision !== 'exact';
+  }
+
+  if (location.source === 'device') {
+    return false;
+  }
+
+  return true;
+};
+
+const buildResolvedMapLocation = (
+  candidate: MapLocationRecord,
+  fallbackText = ''
+): DashboardMapLocation | null => {
+  const lat = toFiniteNumber(candidate['lat'] ?? candidate['latitude']);
+  const lng = toFiniteNumber(
+    candidate['lng'] ?? candidate['longitude'] ?? candidate['lon'] ?? candidate['long']
+  );
+
+  if (lat === null || lng === null) {
+    return null;
+  }
+
+  const label =
+    toLocationText(candidate['label']) ||
+    toLocationText(candidate['display_name']) ||
+    fallbackText ||
+    `Lat ${lat.toFixed(6)}, Lng ${lng.toFixed(6)}`;
+  const query =
+    toLocationText(candidate['query']) ||
+    toLocationText(candidate['address']) ||
+    label ||
+    `${lat},${lng}`;
+  const source = toLocationText(candidate['source']) as DashboardMapLocation['source'] | '';
+  const resolvedSource = (source || 'device') as DashboardMapLocation['source'];
+  const precisionText = toLocationText(candidate['precision']).toLowerCase();
+  const score = toFiniteNumber(candidate['score']);
+  const matchType =
+    toLocationText(candidate['matchType']) ||
+    toLocationText(candidate['addrType']) ||
+    toLocationText(candidate['Addr_type']) ||
+    undefined;
+
+  return {
+    lat,
+    lng,
+    label,
+    query,
+    source: resolvedSource,
+    precision:
+      precisionText === 'exact' || precisionText === 'approximate'
+        ? (precisionText as DashboardMapLocation['precision'])
+        : resolvedSource === 'device'
+          ? 'exact'
+          : 'approximate',
+    score: score ?? undefined,
+    matchType,
+  };
+};
+
+const resolveCoordinatesFromCandidates = (
+  candidates: unknown[],
+  fallbackText = ''
+): DashboardMapLocation | null => {
+  for (const candidate of candidates) {
+    if (!isRecord(candidate)) {
+      continue;
+    }
+
+    const resolvedLocation = buildResolvedMapLocation(candidate, fallbackText);
+
+    if (resolvedLocation) {
+      return resolvedLocation;
+    }
+  }
+
+  return null;
+};
+
 const resolveFallbackMapLocation = (value: string): DashboardMapLocation | null => {
   const normalizedValue = normalizeText(value);
 
@@ -80,16 +189,104 @@ const resolveFallbackMapLocation = (value: string): DashboardMapLocation | null 
   };
 };
 
-export const resolveAlertMapLocation = (alert?: DashboardAlert | null) =>
-  (alert?.mapa as DashboardMapLocation | null | undefined) ||
-  (alert?.ubicacion ? resolveFallbackMapLocation(alert.ubicacion) : null);
+export const resolveAlertMapLocation = (
+  alert?: DashboardAlert | null,
+  options: MapLocationResolverOptions = {}
+) => {
+  const fallbackText = alert?.ubicacion || '';
+  const exactLocation = resolveCoordinatesFromCandidates(
+    [
+      alert,
+      (alert as unknown as MapLocationRecord | null | undefined)?.['location'],
+      (alert as unknown as MapLocationRecord | null | undefined)?.['ubicacion'],
+      (alert as unknown as MapLocationRecord | null | undefined)?.['coords'],
+      (alert as unknown as MapLocationRecord | null | undefined)?.['coordinates'],
+      alert?.mapa,
+    ],
+    fallbackText
+  );
 
-export const resolveAgentMapLocation = (agent?: DashboardAgent | null) =>
-  (agent?.mapa as DashboardMapLocation | null | undefined) ||
-  (agent?.zona ? resolveFallbackMapLocation(agent.zona) : null);
+  if (exactLocation) {
+    if (!options.allowApproximate && isApproximateLocation(exactLocation)) {
+      return null;
+    }
 
-export const resolveCompanyMapLocation = (company: DashboardCompanyProfile) =>
-  company.direccion ? resolveFallbackMapLocation(company.direccion) : null;
+    return exactLocation;
+  }
+
+  return options.allowApproximate && alert?.ubicacion
+    ? resolveFallbackMapLocation(alert.ubicacion)
+    : null;
+};
+
+export const resolveAgentMapLocation = (
+  agent?: DashboardAgent | null,
+  options: MapLocationResolverOptions = {}
+) => {
+  const fallbackText =
+    agent?.ubicacionExacta || agent?.ultimaUbicacionTexto || agent?.zona || '';
+  const directLocation = resolveCoordinatesFromCandidates(
+    [
+      agent,
+      (agent as unknown as MapLocationRecord | null | undefined)?.['location'],
+      (agent as unknown as MapLocationRecord | null | undefined)?.['ubicacion'],
+      (agent as unknown as MapLocationRecord | null | undefined)?.['coords'],
+      (agent as unknown as MapLocationRecord | null | undefined)?.['coordinates'],
+    ],
+    fallbackText
+  );
+
+  if (directLocation) {
+    if (!options.allowApproximate && isApproximateLocation(directLocation)) {
+      return null;
+    }
+
+    return directLocation;
+  }
+
+  const storedMapLocation = resolveCoordinatesFromCandidates([agent?.mapa], fallbackText);
+  const hasExactAddress = !!agent?.ubicacionExacta?.trim();
+
+  if (
+    storedMapLocation &&
+    !isApproximateLocation(storedMapLocation) &&
+    (storedMapLocation.source === 'device' || hasExactAddress || options.allowApproximate)
+  ) {
+    return storedMapLocation;
+  }
+
+  return options.allowApproximate && agent?.zona ? resolveFallbackMapLocation(agent.zona) : null;
+};
+
+export const resolveCompanyMapLocation = (
+  company: DashboardCompanyProfile,
+  options: MapLocationResolverOptions = {}
+) => {
+  const fallbackText = company.direccion || '';
+  const exactLocation = resolveCoordinatesFromCandidates(
+    [
+      company,
+      (company as unknown as MapLocationRecord | null | undefined)?.['location'],
+      (company as unknown as MapLocationRecord | null | undefined)?.['ubicacion'],
+      (company as unknown as MapLocationRecord | null | undefined)?.['coords'],
+      (company as unknown as MapLocationRecord | null | undefined)?.['coordinates'],
+      (company as unknown as MapLocationRecord | null | undefined)?.['mapa'],
+    ],
+    fallbackText
+  );
+
+  if (exactLocation) {
+    if (!options.allowApproximate && isApproximateLocation(exactLocation)) {
+      return null;
+    }
+
+    return exactLocation;
+  }
+
+  return options.allowApproximate && company.direccion
+    ? resolveFallbackMapLocation(company.direccion)
+    : null;
+};
 
 export const getMapQueryLabel = (
   location: DashboardMapLocation | null | undefined,

@@ -94,6 +94,7 @@ export class OperationsService {
     usuario: string;
     password: string;
     zona: string;
+    ubicacionExacta?: string;
     telefono: string;
     codigo: string;
   }) {
