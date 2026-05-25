@@ -320,7 +320,9 @@ export class Login implements OnInit {
         return 'Usuario o contrase\u00f1a incorrectos.';
       }
 
-      const matchingAdmin = await this.authService.resolveAdminAccessIfExists(loginIdentifier);
+      const matchingAdmin = await this.authService
+        .resolveAdminAccessIfExists(loginIdentifier)
+        .catch(() => null);
 
       if (matchingAdmin) {
         return 'Este correo pertenece a una cuenta admin. Usa el acceso admin para ingresar.';

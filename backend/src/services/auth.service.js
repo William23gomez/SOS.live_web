@@ -320,6 +320,14 @@ const isDuplicateCompanyRegistrationCode = (code = '') =>
 
 const traducirErrorFirebase = (error) => {
   const code = error?.code || '';
+  const message = String(error?.message || '');
+
+  if (
+    message.includes('Could not load the default credentials') ||
+    message.includes('DefaultCredentialsError')
+  ) {
+    return 'El backend local no tiene configuradas las credenciales de Firebase Admin. Revisa el archivo .env del backend.';
+  }
 
   if (
     code === 'auth/email-already-exists' ||

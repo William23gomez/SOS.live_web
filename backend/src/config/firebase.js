@@ -3,6 +3,7 @@ const env = require('./env');
 
 const hasExplicitServiceAccount =
   Boolean(env.firebaseClientEmail) && Boolean(env.firebasePrivateKey);
+const hasApplicationDefaultCredentials = Boolean(process.env.GOOGLE_APPLICATION_CREDENTIALS);
 
 if (!admin.apps.length) {
   const appConfig = {
@@ -26,6 +27,11 @@ if (!admin.apps.length) {
     admin.initializeApp({
       ...appConfig,
       credential: admin.credential.cert(serviceAccount),
+    });
+  } else if (hasApplicationDefaultCredentials) {
+    admin.initializeApp({
+      ...appConfig,
+      credential: admin.credential.applicationDefault(),
     });
   } else {
     // In Cloud Functions / Cloud Run, Firebase Admin can use the runtime service account automatically.

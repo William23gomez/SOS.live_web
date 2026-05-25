@@ -146,12 +146,14 @@
               <div class="admin-table admin-table-payments">
                 <div class="admin-table-head">
                   <span>Fecha</span>
+                  <span>Empresa</span>
                   <span>Método</span>
                   <span>Monto</span>
                   <span>Estado</span>
                 </div>
                 <div class="admin-table-row" *ngFor="let payment of payments.slice(0, 6)">
                   <span>{{ payment.fecha }}</span>
+                  <span>{{ payment.companyName || payment.reference || 'Empresa' }}</span>
                   <span>{{ payment.metodo }}</span>
                   <span>{{ payment.monto }}</span>
                   <span class="admin-pill" [class.admin-pill-ok]="payment.estado === 'Completado'" [class.admin-pill-warn]="payment.estado !== 'Completado'">
@@ -180,12 +182,14 @@
           <div class="admin-table admin-table-payments">
             <div class="admin-table-head">
               <span>Fecha</span>
+              <span>Empresa</span>
               <span>Método</span>
               <span>Monto</span>
               <span>Estado</span>
             </div>
             <div class="admin-table-row" *ngFor="let payment of payments">
               <span>{{ payment.fecha }}</span>
+              <span>{{ payment.companyName || payment.reference || 'Empresa' }}</span>
               <span>{{ payment.metodo }}</span>
               <span>{{ payment.monto }}</span>
               <span class="admin-pill" [class.admin-pill-ok]="payment.estado === 'Completado'" [class.admin-pill-warn]="payment.estado !== 'Completado'">

@@ -692,6 +692,70 @@
     font-weight: 700;
 }
 
+.payment-entry-card {
+    margin-bottom: 18px;
+    padding: 20px;
+    border-radius: 22px;
+    display: grid;
+    grid-template-columns: minmax(240px, 0.9fr) minmax(0, 1.6fr);
+    gap: 18px;
+    align-items: end;
+    background:
+        linear-gradient(135deg, rgba(212, 175, 55, 0.1), rgba(72, 197, 255, 0.08)),
+        rgba(255, 255, 255, 0.04);
+    border: 1px solid rgba(212, 175, 55, 0.16);
+}
+
+.payment-entry-copy h3 {
+    margin: 6px 0 8px;
+    font-size: 1.25rem;
+    font-weight: 700;
+}
+
+.payment-brand-row {
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+    margin-top: 14px;
+}
+
+.payment-brand-row span {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    min-height: 34px;
+    padding: 7px 11px;
+    border-radius: 999px;
+    color: rgba(247, 248, 251, 0.9);
+    background: rgba(255, 255, 255, 0.07);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    font-size: 0.86rem;
+    font-weight: 700;
+}
+
+.payment-entry-form {
+    display: grid;
+    grid-template-columns: minmax(140px, 0.7fr) minmax(220px, 1fr) auto;
+    gap: 12px;
+    align-items: end;
+}
+
+.payment-method-actions {
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+}
+
+.payment-method-actions .btn {
+    min-height: 42px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    white-space: nowrap;
+    min-width: 124px;
+}
+
 .alert-entry-form {
     display: grid;
     grid-template-columns: 0.9fr 0.9fr 1.1fr 1.4fr auto;
@@ -882,6 +946,11 @@
 .table-head-short,
 .table-row-short {
     grid-template-columns: 1fr 1.2fr 0.8fr 0.8fr 0.8fr;
+}
+
+.billing-table .table-head-short,
+.billing-table .table-row-short {
+    grid-template-columns: 1fr 1.1fr 0.8fr 0.8fr;
 }
 
 .badge-pill {
@@ -1178,6 +1247,11 @@
         grid-template-columns: 1fr 1fr;
     }
 
+    .payment-entry-card,
+    .payment-entry-form {
+        grid-template-columns: 1fr;
+    }
+
     .alerts-actions {
         grid-template-columns: 1fr 1fr;
     }
@@ -1223,6 +1297,14 @@
 
     .agent-entry-form {
         grid-template-columns: 1fr;
+    }
+
+    .payment-method-actions {
+        width: 100%;
+    }
+
+    .payment-method-actions .btn {
+        flex: 1 1 180px;
     }
 
     .alerts-actions {

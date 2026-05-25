@@ -236,6 +236,11 @@
     align-items: center;
 }
 
+.admin-table-payments .admin-table-head,
+.admin-table-payments .admin-table-row {
+    grid-template-columns: 1fr 1.2fr 0.9fr 0.8fr 0.8fr;
+}
+
 .admin-table-head {
     padding: 0 10px 10px;
     color: rgba(233, 239, 246, 0.54);

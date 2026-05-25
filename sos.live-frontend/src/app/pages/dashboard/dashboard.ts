@@ -1,4 +1,5 @@
 import { ChangeDetectorRef, Component, ElementRef, NgZone, OnDestroy, OnInit, ViewChild } from '@angular/core';
+import { ActivatedRoute } from '@angular/router';
 import { NavigationEnd, Router } from '@angular/router';
 import { onAuthStateChanged, Unsubscribe, User } from 'firebase/auth';
 import { Subscription } from 'rxjs';
@@ -21,6 +22,7 @@ import {
   resolveCompanyMapLocation,
 } from '../../core/operational-map.util';
 import { OperationsService } from '../../core/operations.service';
+import { PaymentsService, PaymentMethodPreference } from '../../core/payments.service';
 import { auth } from '../../core/firebase.config';
 
 type DashboardSection =
@@ -106,6 +108,10 @@ export class Dashboard implements OnInit, OnDestroy {
     ubicacionExacta: '',
     telefono: '',
   };
+  paymentForm = {
+    amount: 5000,
+    concept: 'Prueba de pago SOS.LIVE',
+  };
 
   companyData: DashboardCompanyProfile = {
     nombre: '',
@@ -135,6 +141,8 @@ export class Dashboard implements OnInit, OnDestroy {
   isResendingVerification = false;
   isCreatingAlert = false;
   isCreatingAgent = false;
+  isCreatingPayment = false;
+  isConfirmingPayment = false;
   feedbackMessage = '';
   feedbackType: 'success' | 'error' = 'success';
 
@@ -156,6 +164,8 @@ export class Dashboard implements OnInit, OnDestroy {
     private readonly authService: AuthService,
     private readonly dashboardDataService: DashboardDataService,
     private readonly operationsService: OperationsService,
+    private readonly paymentsService: PaymentsService,
+    private readonly route: ActivatedRoute,
     private readonly router: Router
   ) {}
 
@@ -189,6 +199,7 @@ export class Dashboard implements OnInit, OnDestroy {
 
         this.bindRealtimeDashboard();
         await this.cargarPerfil();
+        await this.confirmReturnedPaymentIfNeeded();
         await this.syncOperationalData();
         this.isLoading = false;
         this.startOperationsSync();
@@ -849,6 +860,68 @@ export class Dashboard implements OnInit, OnDestroy {
 
   onlyNumbersAgent() {
     this.newAgentForm.telefono = this.newAgentForm.telefono.replace(/[^0-9]/g, '');
+  }
+
+  normalizePaymentAmount() {
+    const amount = Number(this.paymentForm.amount);
+    this.paymentForm.amount = Number.isFinite(amount) && amount > 0 ? Math.round(amount) : 0;
+  }
+
+  async startPayment(method: PaymentMethodPreference) {
+    this.normalizePaymentAmount();
+
+    if (!this.paymentForm.amount || this.paymentForm.amount < 1000) {
+      this.showFeedback('Ingresa un monto minimo de $1.000 COP para probar el pago.', 'error');
+      return;
+    }
+
+    this.isCreatingPayment = true;
+    this.showFeedback('', 'success');
+
+    try {
+      const result = await this.paymentsService.createCheckout({
+        amount: this.paymentForm.amount,
+        concept: this.paymentForm.concept || 'Pago SOS.LIVE',
+        method,
+      });
+
+      window.location.assign(result.checkoutUrl);
+    } catch (error) {
+      this.showFeedback(this.paymentsService.translatePaymentError(error), 'error');
+    } finally {
+      this.isCreatingPayment = false;
+    }
+  }
+
+  private async confirmReturnedPaymentIfNeeded() {
+    const transactionId =
+      this.route.snapshot.queryParamMap.get('payment_id') ||
+      this.route.snapshot.queryParamMap.get('collection_id') ||
+      this.route.snapshot.queryParamMap.get('id');
+
+    if (!transactionId || this.isConfirmingPayment) {
+      return;
+    }
+
+    this.isConfirmingPayment = true;
+    this.showFeedback('Confirmando el estado real del pago con Mercado Pago...', 'success');
+
+    try {
+      const result = await this.paymentsService.confirmTransaction(transactionId);
+      const status = String(result.payment['estado'] || '');
+
+      this.showFeedback(
+        status === 'Completado'
+          ? 'Pago aprobado y registrado en el panel admin.'
+          : `Pago actualizado con estado: ${status || 'Pendiente'}.`,
+        status === 'Completado' ? 'success' : 'error'
+      );
+      void this.router.navigate(['/pagos'], { replaceUrl: true });
+    } catch (error) {
+      this.showFeedback(this.paymentsService.translatePaymentError(error), 'error');
+    } finally {
+      this.isConfirmingPayment = false;
+    }
   }
 
   async guardarCambios() {

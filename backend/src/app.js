@@ -31,8 +31,12 @@ app.use(
       const normalizedOrigin = String(origin).replace(/\/+$/, '');
       const isConfiguredFrontend = configuredFrontendOrigins.includes(normalizedOrigin);
       const isLocalDevOrigin = /^https?:\/\/(localhost|127\.0\.0\.1):\d+$/.test(origin);
+      const isPrivateNetworkDevOrigin =
+        /^https?:\/\/10\.\d+\.\d+\.\d+:\d+$/.test(origin) ||
+        /^https?:\/\/192\.168\.\d+\.\d+:\d+$/.test(origin) ||
+        /^https?:\/\/172\.(1[6-9]|2\d|3[0-1])\.\d+\.\d+:\d+$/.test(origin);
 
-      if (isConfiguredFrontend || isLocalDevOrigin) {
+      if (isConfiguredFrontend || isLocalDevOrigin || isPrivateNetworkDevOrigin) {
         callback(null, true);
         return;
       }

@@ -17,6 +17,9 @@ export interface AdminCompany {
 
 export interface AdminPayment {
   id: string;
+  reference?: string;
+  companyName?: string;
+  transactionId?: string;
   fecha: string;
   metodo: string;
   monto: string;

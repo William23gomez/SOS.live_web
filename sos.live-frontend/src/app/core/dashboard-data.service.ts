@@ -71,7 +71,7 @@ export interface DashboardBillingRow {
   fecha: string;
   metodo: string;
   monto: string;
-  estado: 'Completado' | 'Pendiente';
+  estado: 'Completado' | 'Pendiente' | 'Rechazado' | 'Anulado';
 }
 
 export interface DashboardCompanyProfile {

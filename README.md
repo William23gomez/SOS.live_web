@@ -24,6 +24,9 @@ BACKEND_PORT=3000
 FRONTEND_URL=http://localhost:4200
 PUBLIC_APP_URL=https://soslive-f7513.web.app
 APP_FIREBASE_WEB_API_KEY=TU_WEB_API_KEY
+MERCADO_PAGO_ACCESS_TOKEN=APP_USR_o_TEST_tu_access_token
+MERCADO_PAGO_REDIRECT_URL=https://tu-frontend-publico.com/pagos
+MERCADO_PAGO_NOTIFICATION_URL=https://tu-backend-publico.com/api/payments/mercadopago/events
 ```
 
 2. Si corres local con cuenta de servicio, agrega tambien:
@@ -98,6 +101,12 @@ http://localhost:4200
 - El backend guarda el perfil en Firestore.
 - El login valida correo verificado y carga perfil desde backend.
 - El dashboard permite editar perfil, reenviar verificacion, cerrar sesion y eliminar cuenta.
+
+## Pagos
+
+- La ruta `/pagos` crea checkouts de Mercado Pago para tarjeta debito, tarjeta credito y PSE.
+- Para pagos reales configura `MERCADO_PAGO_ACCESS_TOKEN` con el access token de tu cuenta vendedora.
+- Mercado Pago requiere URLs publicas con HTTPS para retornos y notificaciones; usa `MERCADO_PAGO_REDIRECT_URL` y `MERCADO_PAGO_NOTIFICATION_URL` en produccion.
 
 ## Notas
 

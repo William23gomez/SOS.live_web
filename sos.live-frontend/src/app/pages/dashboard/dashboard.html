@@ -556,6 +556,62 @@
             </div>
           </div>
 
+          <section class="payment-entry-card">
+            <div class="payment-entry-copy">
+              <p class="panel-kicker">Nuevo pago</p>
+              <h3>Pago seguro con Mercado Pago</h3>
+              <p class="detail-copy">
+                Procesa tarjeta debito, credito y PSE; al volver, el pago queda registrado en admin.
+              </p>
+              <div class="payment-brand-row">
+                <span><i class="bi bi-credit-card-2-front-fill"></i> Tarjetas</span>
+                <span><i class="bi bi-bank2"></i> PSE</span>
+                <span><i class="bi bi-shield-check"></i> Checkout protegido</span>
+              </div>
+            </div>
+
+            <form class="payment-entry-form" (ngSubmit)="startPayment('checkout')">
+              <div class="field-block">
+                <label class="field-label" for="paymentAmount">Monto COP</label>
+                <input
+                  id="paymentAmount"
+                  name="paymentAmount"
+                  class="toolbar-input"
+                  type="number"
+                  min="1000"
+                  step="1000"
+                  [(ngModel)]="paymentForm.amount"
+                  (blur)="normalizePaymentAmount()">
+              </div>
+
+              <div class="field-block payment-concept-field">
+                <label class="field-label" for="paymentConcept">Concepto</label>
+                <input
+                  id="paymentConcept"
+                  name="paymentConcept"
+                  class="toolbar-input"
+                  type="text"
+                  maxlength="80"
+                  [(ngModel)]="paymentForm.concept">
+              </div>
+
+              <div class="payment-method-actions">
+                <button type="button" class="btn btn-gold" [disabled]="isCreatingPayment || isConfirmingPayment" (click)="startPayment('card')">
+                  <i class="bi bi-credit-card-2-front-fill"></i>
+                  {{ isCreatingPayment ? 'Abriendo...' : 'Tarjeta' }}
+                </button>
+                <button type="button" class="btn btn-outline-light" [disabled]="isCreatingPayment || isConfirmingPayment" (click)="startPayment('pse')">
+                  <i class="bi bi-bank2"></i>
+                  PSE
+                </button>
+                <button type="submit" class="btn btn-outline-light" [disabled]="isCreatingPayment || isConfirmingPayment">
+                  <i class="bi bi-wallet2"></i>
+                  Ver opciones
+                </button>
+              </div>
+            </form>
+          </section>
+
           <section class="stats-grid compact-stats-grid">
             <article class="metric-card" data-accent="emerald">
               <p class="metric-title">Ingresos del mes</p>
@@ -571,7 +627,7 @@
             </article>
           </section>
 
-          <div class="data-table">
+          <div class="data-table billing-table">
             <div class="table-head table-head-short">
               <span>Fecha</span>
               <span>Metodo</span>
@@ -582,7 +638,7 @@
               <span>{{ row.fecha }}</span>
               <span>{{ row.metodo }}</span>
               <span>{{ row.monto }}</span>
-              <span><span class="badge-pill" [class.badge-success]="row.estado === 'Completado'" [class.badge-warn]="row.estado === 'Pendiente'">{{ row.estado }}</span></span>
+              <span><span class="badge-pill" [class.badge-success]="row.estado === 'Completado'" [class.badge-warn]="row.estado === 'Pendiente'" [class.badge-danger]="row.estado !== 'Completado' && row.estado !== 'Pendiente'">{{ row.estado }}</span></span>
             </div>
           </div>
 

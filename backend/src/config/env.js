@@ -24,4 +24,8 @@ module.exports = {
     process.env.APP_FIREBASE_CLIENT_ID || process.env.FIREBASE_CLIENT_ID,
   firebaseClientX509CertUrl:
     process.env.APP_FIREBASE_CLIENT_X509_CERT_URL || process.env.FIREBASE_CLIENT_X509_CERT_URL,
+  publicBackendUrl: process.env.PUBLIC_BACKEND_URL || '',
+  mercadoPagoAccessToken: process.env.MERCADO_PAGO_ACCESS_TOKEN || '',
+  mercadoPagoRedirectUrl: process.env.MERCADO_PAGO_REDIRECT_URL || '',
+  mercadoPagoNotificationUrl: process.env.MERCADO_PAGO_NOTIFICATION_URL || '',
 };
