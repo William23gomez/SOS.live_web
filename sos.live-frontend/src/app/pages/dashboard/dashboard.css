@@ -712,6 +712,15 @@
     font-weight: 700;
 }
 
+.payment-simulation-copy {
+    margin-top: 10px;
+    padding: 10px 12px;
+    border-radius: 14px;
+    color: #dbffec;
+    background: rgba(45, 166, 106, 0.12);
+    border: 1px solid rgba(120, 255, 184, 0.18);
+}
+
 .payment-brand-row {
     display: flex;
     gap: 10px;

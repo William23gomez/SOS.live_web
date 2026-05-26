@@ -563,6 +563,9 @@
               <p class="detail-copy">
                 Procesa tarjeta debito, credito y PSE; al volver, el pago queda registrado en admin.
               </p>
+              <p class="detail-copy payment-simulation-copy">
+                Si aun no tienes credenciales reales, usa la simulacion para registrar un pago aprobado.
+              </p>
               <div class="payment-brand-row">
                 <span><i class="bi bi-credit-card-2-front-fill"></i> Tarjetas</span>
                 <span><i class="bi bi-bank2"></i> PSE</span>
@@ -596,15 +599,19 @@
               </div>
 
               <div class="payment-method-actions">
-                <button type="button" class="btn btn-gold" [disabled]="isCreatingPayment || isConfirmingPayment" (click)="startPayment('card')">
+                <button type="button" class="btn btn-gold" [disabled]="isCreatingPayment || isSimulatingPayment || isConfirmingPayment" (click)="simulatePayment('checkout')">
+                  <i class="bi bi-check-circle-fill"></i>
+                  {{ isSimulatingPayment ? 'Registrando...' : 'Simular pago' }}
+                </button>
+                <button type="button" class="btn btn-outline-light" [disabled]="isCreatingPayment || isSimulatingPayment || isConfirmingPayment" (click)="startPayment('card')">
                   <i class="bi bi-credit-card-2-front-fill"></i>
                   {{ isCreatingPayment ? 'Abriendo...' : 'Tarjeta' }}
                 </button>
-                <button type="button" class="btn btn-outline-light" [disabled]="isCreatingPayment || isConfirmingPayment" (click)="startPayment('pse')">
+                <button type="button" class="btn btn-outline-light" [disabled]="isCreatingPayment || isSimulatingPayment || isConfirmingPayment" (click)="startPayment('pse')">
                   <i class="bi bi-bank2"></i>
                   PSE
                 </button>
-                <button type="submit" class="btn btn-outline-light" [disabled]="isCreatingPayment || isConfirmingPayment">
+                <button type="submit" class="btn btn-outline-light" [disabled]="isCreatingPayment || isSimulatingPayment || isConfirmingPayment">
                   <i class="bi bi-wallet2"></i>
                   Ver opciones
                 </button>

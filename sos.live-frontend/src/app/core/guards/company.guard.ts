@@ -1,16 +1,21 @@
 import { Injectable } from '@angular/core';
-import { CanActivate, Router, UrlTree } from '@angular/router';
+import { ActivatedRouteSnapshot, CanActivate, Router, RouterStateSnapshot, UrlTree } from '@angular/router';
 
 import { AuthService } from '../auth.service';
+import { PaymentsService } from '../payments.service';
 
 @Injectable({ providedIn: 'root' })
 export class CompanyGuard implements CanActivate {
   constructor(
     private readonly authService: AuthService,
+    private readonly paymentsService: PaymentsService,
     private readonly router: Router
   ) {}
 
-  async canActivate(): Promise<boolean | UrlTree> {
+  async canActivate(
+    _route: ActivatedRouteSnapshot,
+    state: RouterStateSnapshot
+  ): Promise<boolean | UrlTree> {
     const currentUser = await this.authService.waitForCurrentUser();
 
     if (!currentUser) {
@@ -24,6 +29,23 @@ export class CompanyGuard implements CanActivate {
 
       if (profile.rol === 'admin') {
         return this.router.parseUrl('/admin');
+      }
+
+      const targetPath = (state.url || '').split('?')[0].split('#')[0].replace(/\/+$/, '') || '/dashboard';
+
+      if (targetPath === '/pagos') {
+        return true;
+      }
+
+      const accessStatus = await this.paymentsService.getAccessStatus();
+
+      if (!accessStatus.hasActivePayment) {
+        return this.router.createUrlTree(['/pagos'], {
+          queryParams: {
+            required: 'payment',
+            redirect: targetPath,
+          },
+        });
       }
 
       return true;

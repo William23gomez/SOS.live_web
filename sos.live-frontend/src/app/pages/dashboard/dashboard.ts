@@ -142,6 +142,7 @@ export class Dashboard implements OnInit, OnDestroy {
   isCreatingAlert = false;
   isCreatingAgent = false;
   isCreatingPayment = false;
+  isSimulatingPayment = false;
   isConfirmingPayment = false;
   feedbackMessage = '';
   feedbackType: 'success' | 'error' = 'success';
@@ -200,6 +201,7 @@ export class Dashboard implements OnInit, OnDestroy {
         this.bindRealtimeDashboard();
         await this.cargarPerfil();
         await this.confirmReturnedPaymentIfNeeded();
+        this.showPaymentRequiredNoticeIfNeeded();
         await this.syncOperationalData();
         this.isLoading = false;
         this.startOperationsSync();
@@ -893,6 +895,44 @@ export class Dashboard implements OnInit, OnDestroy {
     }
   }
 
+  async simulatePayment(method: PaymentMethodPreference = 'checkout') {
+    this.normalizePaymentAmount();
+
+    if (!this.paymentForm.amount || this.paymentForm.amount < 1000) {
+      this.showFeedback('Ingresa un monto minimo de $1.000 COP para simular el pago.', 'error');
+      return;
+    }
+
+    this.isSimulatingPayment = true;
+    this.showFeedback('', 'success');
+
+    try {
+      const result = await this.paymentsService.simulatePayment({
+        amount: this.paymentForm.amount,
+        concept: this.paymentForm.concept || 'Pago SOS.LIVE',
+        method,
+      });
+      const reference = String(result.payment['reference'] || result.reference || '');
+
+      this.showFeedback(
+        `Pago simulado aprobado y registrado en admin${reference ? `: ${reference}` : ''}.`,
+        'success'
+      );
+
+      const redirectTarget = this.route.snapshot.queryParamMap.get('redirect');
+
+      if (redirectTarget && redirectTarget !== '/pagos') {
+        setTimeout(() => {
+          void this.router.navigate([redirectTarget], { replaceUrl: true });
+        }, 700);
+      }
+    } catch (error) {
+      this.showFeedback(this.paymentsService.translatePaymentError(error), 'error');
+    } finally {
+      this.isSimulatingPayment = false;
+    }
+  }
+
   private async confirmReturnedPaymentIfNeeded() {
     const transactionId =
       this.route.snapshot.queryParamMap.get('payment_id') ||
@@ -921,6 +961,17 @@ export class Dashboard implements OnInit, OnDestroy {
       this.showFeedback(this.paymentsService.translatePaymentError(error), 'error');
     } finally {
       this.isConfirmingPayment = false;
+    }
+  }
+
+  private showPaymentRequiredNoticeIfNeeded() {
+    const paymentRequired = this.route.snapshot.queryParamMap.get('required') === 'payment';
+
+    if (this.activeSection === 'billing' && paymentRequired && !this.feedbackMessage) {
+      this.showFeedback(
+        'Para usar el panel de usuario debes registrar primero un pago. Puedes simularlo mientras activas Mercado Pago.',
+        'error'
+      );
     }
   }
 

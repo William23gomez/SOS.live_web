@@ -10,7 +10,9 @@ router.get('/mercadopago/events', paymentsController.handleMercadoPagoEvent);
 
 router.use(authMiddleware);
 
+router.get('/access-status', paymentsController.getAccessStatus);
 router.post('/checkout', paymentsController.createCheckout);
+router.post('/simulate', paymentsController.simulatePayment);
 router.post('/mercadopago/payments/:transactionId/confirm', paymentsController.confirmTransaction);
 
 module.exports = router;

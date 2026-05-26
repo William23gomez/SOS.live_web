@@ -102,6 +102,18 @@ const getPaymentMethodPreferenceLabel = (method = '') => {
   return 'Tarjeta / PSE';
 };
 
+const getSimulatedPaymentMethodLabel = (method = '') => {
+  if (method === 'pse') {
+    return 'PSE simulado';
+  }
+
+  if (method === 'card') {
+    return 'Tarjeta simulada';
+  }
+
+  return 'Checkout simulado';
+};
+
 const getRedirectUrl = () => {
   const configuredUrl = String(env.mercadoPagoRedirectUrl || '').trim();
 
@@ -309,6 +321,89 @@ const createCheckout = async (userId, { amount, concept = '', method = 'checkout
   };
 };
 
+const getAccessStatus = async (userId) => {
+  const completedPaymentSnapshot = await db
+    .collection(BILLING_COLLECTION)
+    .where('companyUid', '==', userId)
+    .where('estado', '==', 'Completado')
+    .limit(1)
+    .get();
+
+  const payment = completedPaymentSnapshot.empty
+    ? null
+    : {
+        id: completedPaymentSnapshot.docs[0].id,
+        ...completedPaymentSnapshot.docs[0].data(),
+      };
+
+  return {
+    hasActivePayment: Boolean(payment),
+    payment,
+  };
+};
+
+const requirePaymentAccess = async (userId) => {
+  const accessStatus = await getAccessStatus(userId);
+
+  if (!accessStatus.hasActivePayment) {
+    throw buildError(
+      'Debes registrar un pago para usar la plataforma SOS.LIVE.',
+      402,
+      'payments/payment-required'
+    );
+  }
+
+  return accessStatus;
+};
+
+const simulatePayment = async (userId, { amount, concept = '', method = 'checkout' }) => {
+  const normalizedAmount = normalizeAmount(amount);
+  const payer = await getPayerProfile(userId);
+  const reference = buildReference(userId);
+  const now = new Date().toISOString();
+  const transactionId = `SIM-${crypto.randomBytes(5).toString('hex').toUpperCase()}`;
+  const paymentRecord = {
+    id: reference,
+    reference,
+    transactionId,
+    simulated: true,
+    companyUid: userId,
+    companyName: payer.nombre,
+    companyEmail: payer.email,
+    fecha: formatDate(now),
+    metodo: getSimulatedPaymentMethodLabel(method),
+    monto: formatCurrency(normalizedAmount),
+    amount: normalizedAmount,
+    amountInCents: normalizedAmount * 100,
+    currency: 'COP',
+    estado: 'Completado',
+    mercadoPagoStatus: 'approved',
+    mercadoPagoStatusDetail: 'simulated_payment',
+    provider: 'Simulador SOS.LIVE',
+    concept: String(concept || 'Pago SOS.LIVE').trim(),
+    createdAt: now,
+    updatedAt: now,
+    rawStatusMessage: 'Pago aprobado en modo simulacion',
+  };
+
+  await db.collection(BILLING_COLLECTION).doc(reference).set(paymentRecord, { merge: true });
+
+  return {
+    reference,
+    transaction: {
+      id: transactionId,
+      status: 'approved',
+      status_detail: 'simulated_payment',
+      external_reference: reference,
+      transaction_amount: normalizedAmount,
+      currency_id: 'COP',
+      payment_method_id: method === 'pse' ? 'pse' : 'simulated_card',
+      payment_type_id: method === 'pse' ? 'bank_transfer' : 'credit_card',
+    },
+    payment: paymentRecord,
+  };
+};
+
 const fetchMercadoPagoPayment = async (paymentId) => {
   const normalizedPaymentId = String(paymentId || '').trim();
 
@@ -404,6 +499,9 @@ const handleMercadoPagoEvent = async (payload = {}, query = {}) => {
 
 module.exports = {
   createCheckout,
+  getAccessStatus,
+  requirePaymentAccess,
+  simulatePayment,
   confirmTransaction,
   handleMercadoPagoEvent,
 };

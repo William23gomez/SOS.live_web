@@ -16,8 +16,15 @@ export interface CreatePaymentCheckoutResponse {
 
 export interface ConfirmPaymentResponse {
   message: string;
+  reference?: string;
   payment: Record<string, unknown>;
   transaction: Record<string, unknown>;
+}
+
+export interface PaymentAccessStatusResponse {
+  message: string;
+  hasActivePayment: boolean;
+  payment: Record<string, unknown> | null;
 }
 
 @Injectable({ providedIn: 'root' })
@@ -67,6 +74,36 @@ export class PaymentsService {
         })
       ),
       'La creacion del checkout tardo demasiado. Intenta de nuevo.'
+    );
+  }
+
+  async getAccessStatus() {
+    const headers = await this.getAuthHeaders();
+
+    return this.withTimeout(
+      firstValueFrom(
+        this.http.get<PaymentAccessStatusResponse>(`${this.apiUrl}/access-status`, {
+          headers,
+        })
+      ),
+      'La validacion del pago tardó demasiado. Intenta de nuevo.'
+    );
+  }
+
+  async simulatePayment(payload: {
+    amount: number;
+    concept: string;
+    method: PaymentMethodPreference;
+  }) {
+    const headers = await this.getAuthHeaders();
+
+    return this.withTimeout(
+      firstValueFrom(
+        this.http.post<ConfirmPaymentResponse>(`${this.apiUrl}/simulate`, payload, {
+          headers,
+        })
+      ),
+      'La simulacion del pago tardo demasiado. Intenta de nuevo.'
     );
   }
 
