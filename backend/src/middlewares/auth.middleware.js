@@ -23,7 +23,7 @@ const authMiddleware = (req, res, next) => {
     })
     .catch(() => {
       res.status(401).json({
-        message: 'Token de Firebase invalido o expirado',
+        message: 'Token de Firebase inválido o expirado',
       });
     });
 };

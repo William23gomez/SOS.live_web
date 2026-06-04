@@ -1,0 +1,94 @@
+<section class="verification-section">
+  <a routerLink="/login" class="back-circle">
+    <i class="bi bi-arrow-left"></i>
+  </a>
+
+  <div class="overlay"></div>
+
+  <div class="container h-100">
+    <div class="row align-items-center justify-content-center h-100">
+      <div class="col-xl-9 col-lg-10">
+        <div *ngIf="verificationCompleted; else verificationPending" class="verification-success-card">
+          <div class="success-icon">
+            <i class="bi bi-check-circle-fill"></i>
+          </div>
+
+          <p class="success-kicker">Estado de verificaci&oacute;n</p>
+          <h1 class="success-title">Verificaci&oacute;n correcta</h1>
+
+          <div
+            *ngIf="feedbackMessage"
+            class="success-banner"
+            [class.status-error]="feedbackType === 'error'"
+            [class.status-success]="feedbackType === 'success'">
+            {{ feedbackMessage }}
+          </div>
+
+          <p class="success-copy">
+            Tu cuenta ya qued&oacute; activa. Ahora puedes iniciar sesi&oacute;n normalmente en el portal.
+          </p>
+
+          <p class="success-copy" *ngIf="targetApp === 'empresa'">
+            Te llevaremos al acceso web en un momento.
+          </p>
+
+          <button *ngIf="targetApp === 'empresa'" type="button" class="btn btn-light success-button" (click)="goToLogin()">
+            Ir a iniciar sesi&oacute;n
+          </button>
+        </div>
+
+        <ng-template #verificationPending>
+          <div class="row align-items-center">
+            <div class="col-lg-6 text-white left-content">
+              <h2 class="fw-bold mb-4">Verifica tu correo</h2>
+              <p class="mb-4">
+                Estamos validando el enlace que lleg&oacute; a tu bandeja. Esta pantalla sirve para
+                completar la verificaci&oacute;n tanto para portal web como para app m&oacute;vil.
+              </p>
+              <button *ngIf="targetApp === 'empresa'" type="button" class="btn btn-outline-light px-4" (click)="goToLogin()">
+                Ir al portal empresas
+              </button>
+            </div>
+
+            <div class="col-lg-6 d-flex justify-content-center">
+              <div class="verification-card">
+                <h2 class="text-center mb-4 fw-bold text-white">Estado de verificaci&oacute;n</h2>
+
+                <div
+                  *ngIf="feedbackMessage"
+                  class="status-banner"
+                  [class.status-error]="feedbackType === 'error'"
+                  [class.status-success]="feedbackType === 'success'">
+                  {{ feedbackMessage }}
+                </div>
+
+                <p class="helper-text" *ngIf="isProcessing">
+                  Validando el correo con Firebase. Espera un momento...
+                </p>
+
+                <p class="helper-text helper-text-accent" *ngIf="isProcessing">
+                  Este paso puede tardar hasta 10 segundos.
+                </p>
+
+                <p class="helper-text" *ngIf="isProcessing">
+                  Si ya puedes iniciar sesi&oacute;n, el correo ya qued&oacute; verificado y esta pantalla se actualizar&aacute; sola.
+                </p>
+
+                <p class="helper-text" *ngIf="!isProcessing && !verificationCompleted">
+                  Si el enlace venci&oacute; o no es v&aacute;lido, solicita un nuevo correo de verificaci&oacute;n
+                  desde el inicio de sesi&oacute;n.
+                </p>
+
+                <div class="text-center">
+                  <button *ngIf="targetApp === 'empresa'" type="button" class="btn btn-gold px-4" (click)="goToLogin()">
+                    Volver al acceso web
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </ng-template>
+      </div>
+    </div>
+  </div>
+</section>

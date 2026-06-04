@@ -1,0 +1,93 @@
+<app-enterprise-shell>
+  <section class="panel-card section-panel">
+    <div class="panel-heading">
+      <div>
+        <p class="panel-kicker">Alertas activas</p>
+        <h2>Gestion de incidentes</h2>
+      </div>
+      <div class="section-actions">
+        <span class="map-chip">{{ vm.filteredAlertsLabel }}</span>
+        <input class="toolbar-input" type="text" placeholder="Buscar alerta..." [(ngModel)]="vm.alertSearch">
+        <select class="toolbar-select" [(ngModel)]="vm.alertPriorityFilter">
+          <option>Todas</option>
+          <option>Alta</option>
+          <option>Media</option>
+          <option>Baja</option>
+        </select>
+        <select class="toolbar-select" [(ngModel)]="vm.alertStatusFilter">
+          <option>Todas</option>
+          <option>Nueva</option>
+          <option>En camino</option>
+          <option>Asignada</option>
+        </select>
+      </div>
+    </div>
+
+    <div class="split-layout">
+      <div class="data-table">
+        <div class="table-head">
+          <span>Usuario</span>
+          <span>Tipo</span>
+          <span>Ubicacion</span>
+          <span>Hora</span>
+          <span>Prioridad</span>
+          <span>Estado</span>
+        </div>
+        <button type="button" class="table-row table-row-button" [class.table-row-active]="alert.id === vm.selectedAlertId" *ngFor="let alert of vm.filteredAlerts" (click)="vm.selectAlert(alert.id)">
+          <span>{{ alert.usuario }}</span>
+          <span>{{ alert.tipo }}</span>
+          <span>{{ alert.ubicacion }}</span>
+          <span>{{ alert.hora }}</span>
+          <span><span class="badge-pill badge-warn">{{ alert.prioridad }}</span></span>
+          <span><span class="badge-pill" [class.badge-danger]="alert.estado === 'Nueva'" [class.badge-info]="alert.estado === 'En camino'" [class.badge-success]="alert.estado === 'Asignada'">{{ alert.estado }}</span></span>
+        </button>
+      </div>
+
+      <aside class="detail-panel" *ngIf="vm.selectedAlert as currentAlert; else noAlertSelected">
+        <p class="panel-kicker">Detalle seleccionado</p>
+        <h3>{{ currentAlert.id }}</h3>
+        <p class="detail-copy">{{ currentAlert.descripcion }}</p>
+        <div class="detail-grid">
+          <div>
+            <span class="info-label">Usuario</span>
+            <strong>{{ currentAlert.usuario }}</strong>
+          </div>
+          <div>
+            <span class="info-label">Ubicacion</span>
+            <strong>{{ currentAlert.ubicacion }}</strong>
+          </div>
+          <div>
+            <span class="info-label">Estado</span>
+            <strong>{{ currentAlert.estado }}</strong>
+          </div>
+          <div>
+            <span class="info-label">Agente</span>
+            <strong>{{ currentAlert.agenteAsignado }}</strong>
+          </div>
+        </div>
+
+        <div class="assign-box">
+          <span class="info-label">Asignar agente</span>
+          <select class="toolbar-select w-100" [(ngModel)]="vm.selectedAgentCode">
+            <option *ngFor="let agent of vm.agents" [value]="agent.codigo">
+              {{ agent.nombre }} - {{ agent.estado }}
+            </option>
+          </select>
+          <button type="button" class="btn btn-gold w-100 mt-3" (click)="vm.assignSelectedAgent()">
+            Asignar agente
+          </button>
+        </div>
+      </aside>
+    </div>
+
+    <ng-template #noAlertSelected>
+      <aside class="detail-panel">
+        <p class="panel-kicker">Detalle seleccionado</p>
+        <h3>Sin alertas disponibles</h3>
+        <p class="detail-copy">
+          Cuando Firestore reciba alertas activas, aqui podras ver el detalle y asignar agentes.
+        </p>
+      </aside>
+    </ng-template>
+  </section>
+</app-enterprise-shell>

@@ -1,0 +1,64 @@
+<app-enterprise-shell>
+  <section class="panel-card section-panel">
+    <div class="panel-heading">
+      <div>
+        <p class="panel-kicker">Gestion de agentes</p>
+        <h2>Equipos disponibles</h2>
+      </div>
+      <div class="section-actions">
+        <input class="toolbar-input" type="text" placeholder="Buscar agente..." [(ngModel)]="vm.agentSearch">
+      </div>
+    </div>
+
+    <div class="cards-grid">
+      <article class="sub-card" *ngFor="let agent of vm.availableAgents">
+        <div class="sub-card-head">
+          <strong>{{ agent.nombre }}</strong>
+          <span class="badge-pill" [class.badge-success]="agent.estado === 'Disponible'" [class.badge-danger]="agent.estado !== 'Disponible'">{{ agent.estado }}</span>
+        </div>
+        <p>Codigo: {{ agent.codigo }}</p>
+        <p>Usuario: {{ agent.usuario || 'Sin usuario' }}</p>
+        <p>Zona: {{ agent.zona }}</p>
+        <p>Telefono: {{ agent.telefono }}</p>
+        <button type="button" class="btn btn-outline-light btn-sm" (click)="vm.toggleAgentStatus(agent.codigo)">
+          Cambiar estado
+        </button>
+      </article>
+    </div>
+
+    <div class="panel-card section-panel">
+      <div class="panel-heading">
+        <h2>Registrar nuevo agente</h2>
+      </div>
+      <form (ngSubmit)="registerAgent()" #agentForm="ngForm">
+        <div class="form-group">
+          <label for="agentNombre">Nombre</label>
+          <input type="text" id="agentNombre" [(ngModel)]="vm.agentFormData.nombre" name="nombre" required>
+        </div>
+        <div class="form-group">
+          <label for="agentUsuario">Usuario del agente</label>
+          <input type="text" id="agentUsuario" [(ngModel)]="vm.agentFormData.usuario" name="usuario" required>
+        </div>
+        <div class="form-group">
+          <label for="agentPassword">Contraseña</label>
+          <input type="password" id="agentPassword" [(ngModel)]="vm.agentFormData.password" name="password" required>
+        </div>
+        <div class="form-group">
+          <label for="agentCodigo">Codigo de acceso</label>
+          <input type="text" id="agentCodigo" [(ngModel)]="vm.agentFormData.codigo" name="codigo" required>
+        </div>
+        <div class="form-group">
+          <label for="agentZona">Zona</label>
+          <input type="text" id="agentZona" [(ngModel)]="vm.agentFormData.zona" name="zona" required>
+        </div>
+        <div class="form-group">
+          <label for="agentTelefono">Teléfono</label>
+          <input type="tel" id="agentTelefono" [(ngModel)]="vm.agentFormData.telefono" name="telefono" required>
+        </div>
+        <button type="submit" class="btn btn-primary" [disabled]="!agentForm.valid || vm.isSubmitting">
+          Registrar agente
+        </button>
+      </form>
+    </div>
+  </section>
+</app-enterprise-shell>

@@ -55,6 +55,49 @@ body {
     padding-left: 5%;
 }
 
+.left-content-admin {
+    display: flex;
+    flex-direction: column;
+    gap: 22px;
+}
+
+.portal-badge {
+    max-width: 420px;
+    padding: 22px 24px;
+    border-radius: 28px;
+    background:
+        linear-gradient(135deg, rgba(88, 191, 214, 0.16), rgba(4, 14, 30, 0.2)),
+        rgba(6, 24, 39, 0.62);
+    border: 1px solid rgba(104, 205, 228, 0.3);
+    box-shadow: 0 18px 44px rgba(0, 0, 0, 0.28);
+}
+
+.portal-badge-label {
+    display: inline-flex;
+    margin-bottom: 12px;
+    padding: 7px 12px;
+    border-radius: 999px;
+    background: rgba(104, 205, 228, 0.14);
+    color: #9fe9ff;
+    font-size: 0.78rem;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+}
+
+.portal-badge strong {
+    display: block;
+    margin-bottom: 10px;
+    font-size: 1.2rem;
+    color: #f4fbff;
+}
+
+.portal-badge p {
+    margin: 0;
+    color: rgba(233, 239, 246, 0.82);
+    line-height: 1.6;
+}
+
 /* TARJETA LOGIN */
 .login-card {
     background: rgba(0, 39, 59, 0.75);
@@ -64,6 +107,46 @@ body {
     width: 100%;
     max-width: 420px;
     box-shadow: 0 15px 35px rgba(0, 0, 0, 0.4);
+}
+
+.login-card-admin {
+    background:
+        linear-gradient(180deg, rgba(5, 27, 42, 0.9), rgba(0, 39, 59, 0.8)),
+        rgba(0, 39, 59, 0.82);
+    border: 1px solid rgba(104, 205, 228, 0.28);
+    box-shadow: 0 24px 48px rgba(0, 0, 0, 0.45);
+}
+
+.access-kicker {
+    margin: 0 0 10px;
+    color: rgba(233, 239, 246, 0.6);
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    font-size: 0.76rem;
+}
+
+.access-toggle {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 10px;
+}
+
+.access-option {
+    min-height: 46px;
+    border-radius: 16px;
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    background: rgba(255, 255, 255, 0.06);
+    color: #f5f7fa;
+    font-weight: 700;
+    transition: background 0.25s ease, border-color 0.25s ease, transform 0.25s ease;
+}
+
+.access-option:hover,
+.access-option-active {
+    background: rgba(212, 175, 55, 0.18);
+    border-color: rgba(212, 175, 55, 0.4);
+    color: #fff2b4;
+    transform: translateY(-1px);
 }
 
 .status-banner {
@@ -87,6 +170,52 @@ body {
     color: #ffe1e1;
 }
 
+.loading-hint {
+    margin: -4px 0 18px;
+    color: rgba(233, 239, 246, 0.78);
+    font-size: 0.92rem;
+    line-height: 1.5;
+}
+
+.admin-entry-banner {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    margin-bottom: 18px;
+    padding: 14px 16px;
+    border-radius: 20px;
+    background: rgba(104, 205, 228, 0.08);
+    border: 1px solid rgba(104, 205, 228, 0.22);
+}
+
+.admin-entry-icon {
+    flex: 0 0 48px;
+    width: 48px;
+    height: 48px;
+    border-radius: 16px;
+    display: grid;
+    place-items: center;
+    background: rgba(104, 205, 228, 0.14);
+    color: #9fe9ff;
+    font-size: 1.2rem;
+}
+
+.admin-entry-banner strong {
+    display: block;
+    color: #effaff;
+    font-size: 1.02rem;
+}
+
+.admin-entry-label {
+    display: block;
+    margin-bottom: 2px;
+    color: rgba(159, 233, 255, 0.8);
+    font-size: 0.78rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+}
+
 /* Inputs */
 .custom-input {
     padding-left: 40px;
@@ -94,6 +223,10 @@ body {
     border: 2px solid transparent;
     height: 45px;
     transition: all 0.3s ease;
+}
+
+.custom-input-password {
+    padding-right: 48px;
 }
 
 .custom-input:hover {
@@ -113,6 +246,27 @@ body {
     top: 50%;
     transform: translateY(-50%);
     color: #D4AF37;
+}
+
+.password-toggle {
+    position: absolute;
+    right: 10px;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 32px;
+    height: 32px;
+    display: grid;
+    place-items: center;
+    border: none;
+    border-radius: 50%;
+    background: transparent;
+    color: #D4AF37;
+    transition: background 0.25s ease, color 0.25s ease;
+}
+
+.password-toggle:hover {
+    background: rgba(212, 175, 55, 0.12);
+    color: #f1cf68;
 }
 
 /* Botón dorado */
@@ -135,12 +289,44 @@ body {
     transform: none;
 }
 
+.forgot-password-text {
+    margin-top: 18px;
+    margin-bottom: 0;
+    color: #f5f7fa;
+    font-size: 0.95rem;
+}
+
+.forgot-password-link {
+    color: #D4AF37;
+    font-weight: 700;
+    text-decoration: none;
+    transition: color 0.3s ease, text-shadow 0.3s ease;
+}
+
+.forgot-password-link:hover {
+    color: #f1cf68;
+    text-decoration: underline;
+    text-shadow: 0 0 10px rgba(212, 175, 55, 0.35);
+}
+
+.admin-hint {
+    margin-top: 18px;
+    margin-bottom: 0;
+    color: rgba(233, 239, 246, 0.74);
+    font-size: 0.95rem;
+    line-height: 1.5;
+}
+
 /* RESPONSIVE */
 @media (max-width: 992px) {
     .left-content {
         text-align: center;
         margin-bottom: 40px;
         padding-left: 0;
+    }
+
+    .portal-badge {
+        max-width: none;
     }
 
     .login-section {

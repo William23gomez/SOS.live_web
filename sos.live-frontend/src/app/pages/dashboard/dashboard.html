@@ -1,115 +1,731 @@
 <section class="dashboard-section">
-  <div class="overlay"></div>
+  <div class="dashboard-backdrop"></div>
 
-  <div class="container dashboard-shell">
-    <div class="dashboard-header">
-      <div>
-        <p class="eyebrow">Panel de usuario</p>
-        <h1>Tu perfil SOS.LIVE</h1>
-        <p class="subtitle">
-          Administra tus datos, verifica tu correo y controla el acceso de tu cuenta.
-        </p>
+  <div class="container-fluid dashboard-shell">
+    <aside class="sidebar-card">
+      <div class="brand-block">
+        <div class="brand-badge">
+          <i class="bi bi-shield-shaded"></i>
+        </div>
+        <div>
+          <p class="brand-kicker">Plataforma</p>
+          <h2>SOS.LIVE</h2>
+        </div>
       </div>
 
-      <div class="header-actions">
-        <button type="button" class="btn btn-outline-light" (click)="cerrarSesion()">
-          Cerrar sesion
+      <nav class="sidebar-nav">
+        <button type="button" class="nav-item" [class.nav-item-active]="activeSection === 'overview'" (click)="navigateToSection('overview')">
+          <i class="bi bi-grid-1x2-fill"></i>
+          Dashboard
         </button>
-      </div>
-    </div>
-
-    <div *ngIf="feedbackMessage" class="status-banner" [class.status-error]="feedbackType === 'error'" [class.status-success]="feedbackType === 'success'">
-      {{ feedbackMessage }}
-    </div>
-
-    <div *ngIf="isLoading" class="loading-card">
-      Sincronizando datos del perfil...
-    </div>
-
-    <div class="dashboard-grid">
-      <article class="info-card verification-card">
-        <h2>Estado de la cuenta</h2>
-        <p class="info-label">Correo actual</p>
-        <p class="info-value">{{ formData.email }}</p>
-
-        <span class="verification-pill" [class.verification-pill-ok]="isEmailVerified" [class.verification-pill-warn]="!isEmailVerified">
-          {{ isEmailVerified ? 'Correo verificado' : 'Correo pendiente de verificacion' }}
-        </span>
-
-        <button
-          *ngIf="!isEmailVerified"
-          type="button"
-          class="btn btn-gold w-100 mt-3"
-          [disabled]="isResendingVerification"
-          (click)="reenviarVerificacion()">
-          {{ isResendingVerification ? 'Enviando...' : 'Reenviar verificacion' }}
+        <button type="button" class="nav-item" [class.nav-item-active]="activeSection === 'alerts'" (click)="navigateToSection('alerts')">
+          <i class="bi bi-exclamation-triangle-fill"></i>
+          Alertas
         </button>
-      </article>
+        <button type="button" class="nav-item" [class.nav-item-active]="activeSection === 'agents'" (click)="navigateToSection('agents')">
+          <i class="bi bi-people-fill"></i>
+          Agentes
+        </button>
+        <button type="button" class="nav-item" [class.nav-item-active]="activeSection === 'history'" (click)="navigateToSection('history')">
+          <i class="bi bi-clock-history"></i>
+          Historial
+        </button>
+        <button type="button" class="nav-item" [class.nav-item-active]="activeSection === 'company'" (click)="navigateToSection('company')">
+          <i class="bi bi-building-fill"></i>
+          Perfil empresa
+        </button>
+        <button type="button" class="nav-item" [class.nav-item-active]="activeSection === 'billing'" (click)="navigateToSection('billing')">
+          <i class="bi bi-credit-card-2-front-fill"></i>
+          Pagos
+        </button>
+        <button type="button" class="nav-item" [class.nav-item-active]="activeSection === 'notifications'" (click)="navigateToSection('notifications')">
+          <i class="bi bi-bell-fill"></i>
+          Notificaciones
+        </button>
+      </nav>
 
-      <article class="info-card">
-        <h2>Editar perfil</h2>
+    </aside>
 
-        <form (ngSubmit)="guardarCambios()">
-          <label class="field-label" for="dashboardNombre">Nombre completo</label>
-          <input
-            id="dashboardNombre"
-            name="dashboardNombre"
-            type="text"
-            class="form-control custom-input"
-            [(ngModel)]="formData.nombre"
-            required>
+    <main class="dashboard-main">
+      <header class="topbar-card">
+        <div>
+          <p class="eyebrow">Dashboard principal</p>
+          <h1>Centro de control SOS.LIVE</h1>
+          <p class="subtitle">
+            Gestiona alertas, agentes, historial operativo y cobertura desde una sola vista.
+          </p>
+        </div>
 
-          <label class="field-label" for="dashboardEmail">Correo</label>
-          <input
-            id="dashboardEmail"
-            name="dashboardEmail"
-            type="email"
-            class="form-control custom-input"
-            [(ngModel)]="formData.email"
-            required>
-
-          <label class="field-label" for="dashboardTelefono">Telefono</label>
-          <input
-            id="dashboardTelefono"
-            name="dashboardTelefono"
-            type="text"
-            inputmode="numeric"
-            class="form-control custom-input"
-            [(ngModel)]="formData.telefono"
-            (input)="onlyNumbers('telefono')"
-            required>
-
-          <label class="field-label" for="dashboardNit">NIT</label>
-          <input
-            id="dashboardNit"
-            name="dashboardNit"
-            type="text"
-            inputmode="numeric"
-            class="form-control custom-input"
-            [(ngModel)]="formData.nit"
-            (input)="onlyNumbers('nit')"
-            required>
-
-          <button type="submit" class="btn btn-gold w-100 mt-4" [disabled]="isSubmitting">
-            {{ isSubmitting ? 'Guardando...' : 'Guardar cambios' }}
+        <div class="topbar-user">
+          <div class="live-status">
+            <span class="live-dot"></span>
+            En vivo {{ realtimeClock }}
+          </div>
+          <div class="welcome-copy">
+            <span class="welcome-label">Cuenta activa</span>
+            <strong>{{ displayName }}</strong>
+          </div>
+          <div class="avatar-chip">{{ userInitials }}</div>
+          <button type="button" class="btn btn-outline-light" (click)="cerrarSesion()">
+            Cerrar sesión
           </button>
-        </form>
-      </article>
+        </div>
+      </header>
 
-      <article class="info-card danger-card">
-        <h2>Zona sensible</h2>
-        <p>
-          Si eliminas tu cuenta, tambien se borraran tus datos guardados en el sistema.
-        </p>
+      <div *ngIf="feedbackMessage" class="status-banner" [class.status-error]="feedbackType === 'error'" [class.status-success]="feedbackType === 'success'">
+        {{ feedbackMessage }}
+      </div>
 
-        <button
-          type="button"
-          class="btn btn-outline-danger w-100"
-          [disabled]="isDeleting"
-          (click)="eliminarCuenta()">
-          {{ isDeleting ? 'Eliminando...' : 'Eliminar cuenta' }}
-        </button>
-      </article>
-    </div>
+      <div *ngIf="shouldShowLoadingCard" class="loading-card">
+        Sincronizando datos del dashboard...
+      </div>
+
+      <ng-container [ngSwitch]="activeSection">
+        <section *ngSwitchCase="'overview'">
+          <section class="stats-grid">
+            <article *ngFor="let card of summaryCards" class="metric-card" [attr.data-accent]="card.accent">
+              <div class="metric-icon">
+                <i [class]="'bi ' + card.icon"></i>
+              </div>
+              <p class="metric-title">{{ card.title }}</p>
+              <strong class="metric-value">{{ card.value }}</strong>
+              <span class="metric-detail">{{ card.detail }}</span>
+            </article>
+          </section>
+
+          <section class="content-grid">
+            <article class="panel-card map-panel">
+              <div class="panel-heading">
+                <div>
+                  <p class="panel-kicker">Mapa operativo</p>
+                  <h2>Vista de cobertura en tiempo real</h2>
+                </div>
+                <div class="map-legend">
+                  <span><i class="bi bi-circle-fill legend-alert"></i> Alertas</span>
+                  <span><i class="bi bi-circle-fill legend-safe"></i> Cobertura</span>
+                </div>
+              </div>
+
+              <div class="map-toolbar">
+                <div class="map-chip">Seguimiento cada segundo</div>
+                <div class="map-chip">Cobertura: Bogota y alrededores</div>
+                <div class="map-chip">Solo puntos con coordenadas reales</div>
+                <div class="map-chip">Referencia activa: {{ mapContextLabel }}</div>
+                <div class="map-chip" *ngIf="activeMapCoordinatesLabel">Coordenadas: {{ activeMapCoordinatesLabel }}</div>
+                <div class="map-chip">Alertas monitoreadas: {{ operationalAlertsCount }}</div>
+                <a class="map-open-link" [href]="externalMapUrl" target="_blank" rel="noopener noreferrer">
+                  Abrir mapa real
+                </a>
+              </div>
+
+              <div class="map-stage">
+                <div #operationalMapContainer class="map-canvas" aria-label="Mapa operativo exacto SOS.LIVE"></div>
+              </div>
+
+              <div class="map-footer-grid">
+                <article class="mini-card">
+                  <p class="footer-label">Alertas recientes</p>
+                  <div class="mini-list">
+                    <button type="button" class="mini-row mini-row-button" *ngFor="let alert of operationalAlerts.slice(0, 3)" (click)="focusAlertFromMap(alert.id)">
+                      <div class="mini-row-main">
+                        <strong>{{ alert.usuario }}</strong>
+                        <span class="mini-row-meta">{{ alert.tipo }} | {{ alert.hora }}</span>
+                        <span class="mini-row-note">{{ alert.ubicacion }}</span>
+                      </div>
+                      <span class="mini-status-pill mini-status-pill-alert">
+                        {{ normalizeAlertStatus(alert.estado) }}
+                      </span>
+                    </button>
+                    <div class="mini-row" *ngIf="operationalAlerts.length === 0">
+                      <div class="mini-row-main">
+                        <strong>Sin alertas</strong>
+                        <span class="mini-row-note">No hay alertas registradas.</span>
+                      </div>
+                    </div>
+                  </div>
+                </article>
+
+                <article class="mini-card">
+                  <p class="footer-label">Agentes en campo</p>
+                  <div class="mini-list">
+                    <div class="mini-row" *ngFor="let agent of agents.slice(0, 3)">
+                      <div class="mini-row-main">
+                        <strong>{{ agent.nombre }}</strong>
+                        <span class="mini-row-meta">{{ agent.zona }}</span>
+                        <span class="mini-row-note">{{ getAgentLocationLabel(agent) }}</span>
+                        <span class="mini-row-note">Ultimo acceso: {{ getAgentLastSeenLabel(agent) }}</span>
+                      </div>
+                      <span class="mini-status-pill" [class.mini-status-pill-busy]="agent.estado !== 'Disponible'">
+                        {{ agent.estado }}
+                      </span>
+                    </div>
+                    <div class="mini-row" *ngIf="agents.length === 0">
+                      <div class="mini-row-main">
+                        <strong>Sin agentes</strong>
+                        <span class="mini-row-note">No hay agentes registrados.</span>
+                      </div>
+                    </div>
+                  </div>
+                </article>
+              </div>
+            </article>
+
+            <div class="side-panels">
+              <article class="panel-card">
+                <div class="panel-heading">
+                  <div>
+                    <p class="panel-kicker">Monitoreo</p>
+                    <h2>Actividad reciente</h2>
+                  </div>
+                </div>
+                <div class="timeline-list">
+                  <div class="timeline-row" *ngFor="let item of notifications.slice(0, 3)">
+                    <span class="timeline-dot" [class.timeline-dot-danger]="item.tipo === 'danger'" [class.timeline-dot-success]="item.tipo === 'success'"></span>
+                    <div>
+                      <strong>{{ item.titulo }}</strong>
+                      <p>{{ item.descripcion }}</p>
+                    </div>
+                  </div>
+                </div>
+              </article>
+            </div>
+          </section>
+        </section>
+
+        <section *ngSwitchCase="'alerts'" class="panel-card section-panel">
+          <div class="panel-heading">
+            <div>
+              <p class="panel-kicker">Alertas activas</p>
+              <h2>Gestion de incidentes</h2>
+            </div>
+            <div class="section-actions alerts-actions">
+              <span class="map-chip">{{ filteredAlertsLabel }}</span>
+              <input class="toolbar-input" type="text" placeholder="Buscar alerta..." [(ngModel)]="alertSearch">
+              <select class="toolbar-select" [(ngModel)]="alertPriorityFilter">
+                <option>Todas</option>
+                <option>Alta</option>
+                <option>Media</option>
+                <option>Baja</option>
+              </select>
+              <select class="toolbar-select" [(ngModel)]="alertStatusFilter">
+                <option>Todas</option>
+                <option>En proceso</option>
+                <option>En camino</option>
+                <option>Asignado</option>
+                <option>Finalizado</option>
+                <option>Cancelado</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="split-layout">
+            <div class="data-table">
+              <div class="table-head">
+                <span>Usuario</span>
+                <span>Tipo</span>
+                <span>Ubicacion</span>
+                <span>Hora</span>
+                <span>Prioridad</span>
+                <span>Estado</span>
+              </div>
+              <button type="button" class="table-row table-row-button" [class.table-row-active]="alert.id === selectedAlertId" *ngFor="let alert of filteredAlerts" (click)="selectAlert(alert.id)">
+                <span>{{ alert.usuario }}</span>
+                <span>{{ alert.tipo }}</span>
+                <span>{{ alert.ubicacion }}</span>
+                <span>{{ alert.hora }}</span>
+                <span><span class="badge-pill badge-warn">{{ alert.prioridad }}</span></span>
+                <span><span class="badge-pill" [ngClass]="getAlertStatusClass(alert.estado)">{{ normalizeAlertStatus(alert.estado) }}</span></span>
+              </button>
+            </div>
+
+            <aside class="detail-panel" *ngIf="selectedAlert as currentAlert; else noAlertSelected">
+              <p class="panel-kicker">Detalle seleccionado</p>
+              <h3>{{ currentAlert.id }}</h3>
+              <p class="detail-copy">{{ currentAlert.descripcion }}</p>
+              <div class="detail-grid">
+                <div>
+                  <span class="info-label">Usuario</span>
+                  <strong>{{ currentAlert.usuario }}</strong>
+                </div>
+                <div>
+                  <span class="info-label">Ubicacion</span>
+                  <strong>{{ currentAlert.ubicacion }}</strong>
+                </div>
+                <div>
+                  <span class="info-label">Estado</span>
+                  <strong>{{ normalizeAlertStatus(currentAlert.estado) }}</strong>
+                </div>
+                <div>
+                  <span class="info-label">Agente</span>
+                  <strong>{{ currentAlert.agenteAsignado }}</strong>
+                </div>
+              </div>
+
+              <div class="service-status-steps">
+                <div class="status-step" [class.status-step-active]="selectedAlertServiceStatus === 'En proceso' || selectedAlertServiceStatus === 'En camino' || selectedAlertServiceStatus === 'Asignado' || selectedAlertServiceStatus === 'Finalizado'">
+                  <span class="status-step-dot"></span>
+                  <strong>En proceso</strong>
+                </div>
+                <div class="status-step-line" [class.status-step-line-active]="selectedAlertServiceStatus === 'Asignado' || selectedAlertServiceStatus === 'Finalizado'"></div>
+                <div class="status-step" [class.status-step-active]="selectedAlertServiceStatus === 'Asignado' || selectedAlertServiceStatus === 'Finalizado'">
+                  <span class="status-step-dot"></span>
+                  <strong>Asignado</strong>
+                </div>
+                <div class="status-step-line" [class.status-step-line-active]="selectedAlertServiceStatus === 'Finalizado'"></div>
+                <div class="status-step" [class.status-step-active]="selectedAlertServiceStatus === 'Finalizado'">
+                  <span class="status-step-dot"></span>
+                  <strong>Finalizado</strong>
+                </div>
+              </div>
+
+              <div class="assign-box">
+                <span class="info-label">Operacion desde la app movil</span>
+                <p class="detail-copy mt-3">
+                  La alerta se crea desde la app movil, el agente toma el servicio desde la app movil y el usuario finaliza el servicio desde la app movil.
+                </p>
+              </div>
+            </aside>
+          </div>
+
+          <ng-template #noAlertSelected>
+            <aside class="detail-panel">
+              <p class="panel-kicker">Detalle seleccionado</p>
+              <h3>Sin alertas disponibles</h3>
+              <p class="detail-copy">
+                Cuando Firestore reciba alertas activas, aqui podras ver su detalle en tiempo real.
+              </p>
+            </aside>
+          </ng-template>
+        </section>
+
+        <section *ngSwitchCase="'agents'" class="panel-card section-panel">
+          <div class="panel-heading">
+            <div>
+              <p class="panel-kicker">Gestion de agentes</p>
+              <h2>Equipos disponibles</h2>
+            </div>
+            <div class="section-actions">
+              <input class="toolbar-input" type="text" placeholder="Buscar agente..." [(ngModel)]="agentSearch">
+            </div>
+          </div>
+
+          <section class="alert-entry-card">
+            <div>
+              <p class="panel-kicker">Nuevo agente</p>
+              <h3>Registrar agente operativo</h3>
+            </div>
+
+            <form class="agent-entry-form" (ngSubmit)="createAgent()">
+              <input class="toolbar-input" type="text" name="agentNombre" placeholder="Nombre completo" [(ngModel)]="newAgentForm.nombre" required>
+              <input class="toolbar-input" type="text" name="agentUsuario" placeholder="Usuario del agente" [(ngModel)]="newAgentForm.usuario" required>
+              <input class="toolbar-input" type="password" name="agentPassword" placeholder="Contraseña" [(ngModel)]="newAgentForm.password" required>
+              <input class="toolbar-input" type="text" name="agentCodigo" placeholder="Codigo de acceso" [(ngModel)]="newAgentForm.codigo" required>
+              <input class="toolbar-input" type="text" name="agentZona" placeholder="Zona o sector (ej. Sur, Kennedy, Suba)" [(ngModel)]="newAgentForm.zona" required>
+              <input class="toolbar-input" type="tel" inputmode="numeric" pattern="[0-9]*" name="agentTelefono" placeholder="Teléfono" [(ngModel)]="newAgentForm.telefono" (input)="onlyNumbersAgent()" required>
+              <button type="submit" class="btn btn-gold" [disabled]="isCreatingAgent">
+                {{ isCreatingAgent ? 'Guardando...' : 'Agregar agente' }}
+              </button>
+            </form>
+          </section>
+
+          <div class="cards-grid">
+            <article class="sub-card" *ngFor="let agent of availableAgents">
+              <div class="sub-card-head">
+                <strong>{{ agent.nombre }}</strong>
+                <span class="badge-pill" [class.badge-success]="agent.estado === 'Disponible'" [class.badge-danger]="agent.estado !== 'Disponible'">{{ agent.estado }}</span>
+              </div>
+              <p>Código: {{ agent.codigo }}</p>
+              <p>Usuario: {{ agent.usuario || 'Sin usuario' }}</p>
+              <p>Zona: {{ agent.zona }}</p>
+              <p>Ubicacion exacta: {{ getAgentLocationLabel(agent) }}</p>
+              <p>Ultimo acceso: {{ getAgentLastSeenLabel(agent) }}</p>
+              <p>Teléfono: {{ agent.telefono }}</p>
+              <div class="agent-card-actions">
+                <button type="button" class="btn btn-outline-light btn-sm" (click)="toggleAgentStatus(agent.codigo)">
+                  Cambiar estado
+                </button>
+                <button type="button" class="btn btn-outline-danger btn-sm" (click)="deleteAgent(agent.codigo)">
+                  Eliminar
+                </button>
+              </div>
+            </article>
+          </div>
+
+          <div *ngIf="availableAgents.length === 0" class="detail-panel">
+            <p class="panel-kicker">Sin agentes reales</p>
+            <h3>No hay registros disponibles</h3>
+            <p class="detail-copy">
+              Esta seccion solo muestra agentes guardados realmente en Firebase.
+            </p>
+          </div>
+        </section>
+
+        <section *ngSwitchCase="'history'" class="panel-card section-panel">
+          <div class="panel-heading">
+            <div>
+              <p class="panel-kicker">Historial de servicios</p>
+              <h2>Seguimiento completado</h2>
+            </div>
+            <div class="section-actions">
+              <select class="toolbar-select" [(ngModel)]="selectedHistoryStatus">
+                <option>Todos</option>
+                <option>Completado</option>
+                <option>Pendiente</option>
+                <option>Cancelado</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="data-table">
+            <div class="table-head">
+              <span>Usuario</span>
+              <span>Tipo</span>
+              <span>Fecha</span>
+              <span>Duracion</span>
+              <span>Estado</span>
+            </div>
+            <div class="table-row table-row-short" *ngFor="let row of filteredHistoryRows">
+              <span>{{ row.usuario }}</span>
+              <span>{{ row.tipo }}</span>
+              <span>{{ row.fecha }}</span>
+              <span>
+                {{ row.duracion }}
+                <small *ngIf="row.calificacion"> • {{ row.calificacion }}/5</small>
+              </span>
+              <span><span class="badge-pill" [class.badge-success]="row.estado === 'Completado'" [class.badge-warn]="row.estado === 'Pendiente'" [class.badge-danger]="row.estado === 'Cancelado'">{{ row.estado }}</span></span>
+            </div>
+          </div>
+
+          <div *ngIf="filteredHistoryRows.length === 0" class="detail-panel">
+            <p class="panel-kicker">Sin historial real</p>
+            <h3>No hay movimientos registrados</h3>
+            <p class="detail-copy">
+              El historial aparecera cuando existan servicios guardados en la base de datos.
+            </p>
+          </div>
+        </section>
+
+        <section *ngSwitchCase="'company'" class="panel-card section-panel">
+          <div class="panel-heading">
+            <div>
+              <p class="panel-kicker">Perfil de empresa</p>
+              <h2>Informacion corporativa</h2>
+            </div>
+          </div>
+
+          <div class="company-grid">
+            <article class="sub-card company-badge-card">
+              <div class="company-shield">
+                <i class="bi bi-shield-lock-fill"></i>
+              </div>
+              <div>
+                <strong>{{ companyData.nombre || formData.nombre || 'Sin nombre registrado' }}</strong>
+                <p>{{ companyData.plan || 'Sin plan registrado' }}</p>
+              </div>
+            </article>
+
+            <article class="sub-card">
+              <p class="info-label">Correo</p>
+              <strong>{{ companyData.correo || formData.email || 'Sin dato' }}</strong>
+            </article>
+            <article class="sub-card">
+              <p class="info-label">Telefono</p>
+              <strong>{{ companyData.telefono || formData.telefono || 'Sin dato' }}</strong>
+            </article>
+            <article class="sub-card">
+              <p class="info-label">Direccion</p>
+              <strong>{{ companyData.direccion || 'Sin dato' }}</strong>
+            </article>
+            <article class="sub-card">
+              <p class="info-label">NIT</p>
+              <strong>{{ companyData.nitEmpresa || formData.nit || 'Sin dato' }}</strong>
+            </article>
+            <article class="sub-card">
+              <p class="info-label">Estado</p>
+              <span class="badge-pill" [class.badge-success]="companyData.estado">{{ companyData.estado || 'Sin dato' }}</span>
+            </article>
+          </div>
+
+          <section class="profile-panel inner-profile-panel">
+            <div class="panel-heading">
+              <div>
+                <p class="panel-kicker">Datos del responsable</p>
+                <h2>Actualiza tus datos</h2>
+              </div>
+            </div>
+
+            <form class="profile-form" #profileEditForm="ngForm" (ngSubmit)="guardarCambios()">
+              <div class="field-block field-block-wide">
+                <label class="field-label" for="dashboardNombre">Nombre completo</label>
+                <input id="dashboardNombre" name="dashboardNombre" type="text" class="form-control custom-input" [(ngModel)]="profileForm.nombre" (ngModelChange)="markProfileFormDirty()" required>
+              </div>
+
+              <div class="field-block">
+                <label class="field-label" for="dashboardEmail">Correo</label>
+                <input id="dashboardEmail" name="dashboardEmail" type="email" class="form-control custom-input" [(ngModel)]="profileForm.email" (ngModelChange)="markProfileFormDirty()" required>
+              </div>
+
+              <div class="field-block">
+                <label class="field-label" for="dashboardTelefono">Telefono</label>
+                <input id="dashboardTelefono" name="dashboardTelefono" type="number" inputmode="numeric" class="form-control custom-input" [(ngModel)]="profileForm.telefono" (input)="onlyNumbersProfile('telefono')" required>
+              </div>
+
+              <div class="field-block">
+                <label class="field-label" for="dashboardNit">NIT</label>
+                <input id="dashboardNit" name="dashboardNit" type="number" inputmode="numeric" class="form-control custom-input" [(ngModel)]="profileForm.nit" (input)="onlyNumbersProfile('nit')" required>
+              </div>
+
+              <div class="field-block field-block-wide">
+                <label class="field-label" for="companyDireccion">Direccion</label>
+                <input id="companyDireccion" name="companyDireccion" type="text" class="form-control custom-input" [(ngModel)]="profileForm.direccion" (ngModelChange)="markProfileFormDirty()" placeholder="Direccion principal de la empresa" required>
+              </div>
+
+              <div class="field-block">
+                <label class="field-label" for="companyPlan">Plan</label>
+                <input id="companyPlan" name="companyPlan" type="text" class="form-control custom-input" [(ngModel)]="profileForm.plan" (ngModelChange)="markProfileFormDirty()" placeholder="Plan actual" required>
+              </div>
+
+              <div class="profile-actions">
+                <button type="submit" class="btn btn-gold" [disabled]="isSubmitting || profileEditForm.invalid">
+                  {{ isSubmitting ? 'Guardando...' : 'Guardar cambios' }}
+                </button>
+              </div>
+            </form>
+          </section>
+        </section>
+
+        <section *ngSwitchCase="'billing'" class="panel-card section-panel">
+          <div class="panel-heading">
+            <div>
+              <p class="panel-kicker">Pagos y facturacion</p>
+              <h2>Movimientos recientes</h2>
+            </div>
+            <div class="section-actions">
+              <select class="toolbar-select" [(ngModel)]="selectedBillingStatus">
+                <option>Todos</option>
+                <option>Completado</option>
+                <option>Pendiente</option>
+              </select>
+            </div>
+          </div>
+
+          <section class="payment-entry-card">
+            <div class="payment-entry-copy">
+              <p class="panel-kicker">Nuevo pago</p>
+              <h3>Pago seguro con Mercado Pago</h3>
+              <p class="detail-copy">
+                Ingresa los datos de tarjeta para simular el pago. No se descuenta dinero; solo se registra la transaccion de prueba en admin.
+              </p>
+              <p *ngIf="paymentSetupStatus?.realPaymentsEnabled; else paymentSetupPending" class="detail-copy payment-real-copy">
+                Modo simulacion activo para pruebas internas. Mercado Pago real queda disponible como opcion separada.
+              </p>
+              <ng-template #paymentSetupPending>
+                <p class="detail-copy payment-simulation-copy">
+                  Simulador activo: valida formato de tarjeta, aprueba el pago y no realiza ningun cobro real.
+                </p>
+              </ng-template>
+              <div class="payment-brand-row">
+                <span><i class="bi bi-credit-card-2-front-fill"></i> Tarjetas</span>
+                <span><i class="bi bi-shield-check"></i> Sin cobro real</span>
+                <span><i class="bi bi-check-circle-fill"></i> Aprobacion simulada</span>
+              </div>
+            </div>
+
+            <form class="payment-entry-form" (ngSubmit)="simulatePayment('card')">
+              <div class="field-block">
+                <label class="field-label" for="paymentAmount">Monto COP</label>
+                <input
+                  id="paymentAmount"
+                  name="paymentAmount"
+                  class="toolbar-input"
+                  type="number"
+                  min="1000"
+                  step="1000"
+                  [(ngModel)]="paymentForm.amount"
+                  (blur)="normalizePaymentAmount()">
+              </div>
+
+              <div class="field-block payment-concept-field">
+                <label class="field-label" for="paymentConcept">Concepto</label>
+                <input
+                  id="paymentConcept"
+                  name="paymentConcept"
+                  class="toolbar-input"
+                  type="text"
+                  maxlength="80"
+                  [(ngModel)]="paymentForm.concept">
+              </div>
+
+              <div class="field-block payment-cardholder-field">
+                <label class="field-label" for="paymentCardholder">Nombre del titular</label>
+                <input
+                  id="paymentCardholder"
+                  name="paymentCardholder"
+                  class="toolbar-input"
+                  type="text"
+                  autocomplete="cc-name"
+                  maxlength="70"
+                  placeholder="Como aparece en la tarjeta"
+                  pattern="[A-Za-zÀ-ÿÑñ ]+"
+                  [(ngModel)]="paymentForm.cardholderName"
+                  (ngModelChange)="formatSimulatedCardholderName()">
+              </div>
+
+              <div class="field-block payment-card-number-field">
+                <label class="field-label" for="paymentCardNumber">Numero de tarjeta</label>
+                <input
+                  id="paymentCardNumber"
+                  name="paymentCardNumber"
+                  class="toolbar-input"
+                  type="text"
+                  inputmode="numeric"
+                  autocomplete="cc-number"
+                  maxlength="19"
+                  pattern="[0-9]*"
+                  placeholder="4111111111111111"
+                  [(ngModel)]="paymentForm.cardNumber"
+                  (ngModelChange)="formatSimulatedCardNumber()">
+              </div>
+
+              <div class="field-block">
+                <label class="field-label" for="paymentCardExpiry">Vence</label>
+                <input
+                  id="paymentCardExpiry"
+                  name="paymentCardExpiry"
+                  class="toolbar-input"
+                  type="text"
+                  inputmode="numeric"
+                  autocomplete="cc-exp"
+                  maxlength="5"
+                  placeholder="MM/AA"
+                  [(ngModel)]="paymentForm.cardExpiry"
+                  (ngModelChange)="formatSimulatedCardExpiry()">
+              </div>
+
+              <div class="field-block">
+                <label class="field-label" for="paymentCardCvv">CVV</label>
+                <input
+                  id="paymentCardCvv"
+                  name="paymentCardCvv"
+                  class="toolbar-input"
+                  type="password"
+                  inputmode="numeric"
+                  autocomplete="cc-csc"
+                  maxlength="3"
+                  pattern="[0-9]{3}"
+                  placeholder="123"
+                  [(ngModel)]="paymentForm.cardCvv"
+                  (ngModelChange)="formatSimulatedCardCvv()">
+              </div>
+
+              <div class="field-block payment-document-field">
+                <label class="field-label" for="paymentCardDocument">Documento</label>
+                <input
+                  id="paymentCardDocument"
+                  name="paymentCardDocument"
+                  class="toolbar-input"
+                  type="text"
+                  inputmode="numeric"
+                  maxlength="12"
+                  pattern="[0-9]*"
+                  placeholder="Cedula del titular"
+                  [(ngModel)]="paymentForm.cardDocument"
+                  (ngModelChange)="formatSimulatedCardDocument()">
+              </div>
+
+              <div class="payment-method-actions">
+                <button type="submit" class="btn btn-gold" [disabled]="isCreatingPayment || isSimulatingPayment || isConfirmingPayment || isLoadingPaymentSetup">
+                  <i class="bi bi-check-circle-fill"></i>
+                  {{ isSimulatingPayment ? 'Validando tarjeta...' : 'Simular pago con tarjeta' }}
+                </button>
+                <button type="button" class="btn btn-outline-light" [disabled]="isCreatingPayment || isSimulatingPayment || isConfirmingPayment || isLoadingPaymentSetup || !paymentSetupStatus?.realPaymentsEnabled" (click)="startPayment('checkout')">
+                  <i class="bi bi-wallet2"></i>
+                  Mercado Pago real
+                </button>
+              </div>
+            </form>
+          </section>
+
+          <section class="stats-grid compact-stats-grid">
+            <article class="metric-card" data-accent="emerald">
+              <p class="metric-title">Ingresos del mes</p>
+              <strong class="metric-value">{{ monthlyBillingTotal }}</strong>
+            </article>
+            <article class="metric-card" data-accent="cyan">
+              <p class="metric-title">Transacciones</p>
+              <strong class="metric-value">{{ billingTransactionsCount }}</strong>
+            </article>
+            <article class="metric-card" data-accent="gold">
+              <p class="metric-title">Pendientes</p>
+              <strong class="metric-value">{{ pendingBillingTotal }}</strong>
+            </article>
+          </section>
+
+          <div class="data-table billing-table">
+            <div class="table-head table-head-short">
+              <span>Fecha</span>
+              <span>Metodo</span>
+              <span>Monto</span>
+              <span>Estado</span>
+            </div>
+            <div class="table-row table-row-short" *ngFor="let row of filteredBillingRows">
+              <span>{{ row.fecha }}</span>
+              <span>{{ row.metodo }}</span>
+              <span>{{ row.monto }}</span>
+              <span><span class="badge-pill" [class.badge-success]="row.estado === 'Completado'" [class.badge-warn]="row.estado === 'Pendiente'" [class.badge-danger]="row.estado !== 'Completado' && row.estado !== 'Pendiente'">{{ row.estado }}</span></span>
+            </div>
+          </div>
+
+          <div *ngIf="filteredBillingRows.length === 0" class="detail-panel">
+            <p class="panel-kicker">Sin pagos reales</p>
+            <h3>No hay movimientos para mostrar</h3>
+            <p class="detail-copy">
+              Esta vista solo se llena con registros existentes en la base de datos.
+            </p>
+          </div>
+        </section>
+
+        <section *ngSwitchCase="'notifications'" class="panel-card section-panel">
+          <div class="panel-heading">
+            <div>
+              <p class="panel-kicker">Notificaciones</p>
+              <h2>Centro de eventos</h2>
+            </div>
+            <div class="section-actions">
+              <span class="map-chip">Sin leer: {{ unreadNotificationsCount }}</span>
+              <button type="button" class="btn btn-outline-light btn-sm" (click)="markAllNotificationsAsRead()">
+                Marcar todas
+              </button>
+            </div>
+          </div>
+
+          <div class="notification-list">
+            <article class="notification-card" [class.notification-read]="item.leida" *ngFor="let item of notifications">
+              <div class="notification-icon" [class.notification-danger]="item.tipo === 'danger'" [class.notification-success]="item.tipo === 'success'">
+                <i class="bi" [class.bi-bell-fill]="item.tipo === 'danger'" [class.bi-check-circle-fill]="item.tipo === 'success'" [class.bi-info-circle-fill]="item.tipo === 'info'"></i>
+              </div>
+              <div class="notification-copy">
+                <strong>{{ item.titulo }}</strong>
+                <p>{{ item.descripcion }}</p>
+              </div>
+              <div class="notification-actions">
+                <span class="notification-time">{{ item.tiempo }}</span>
+                <button *ngIf="!item.leida" type="button" class="btn btn-link btn-sm notification-link" (click)="markNotificationAsRead(item.id)">
+                  Marcar leida
+                </button>
+              </div>
+            </article>
+          </div>
+
+          <div *ngIf="notifications.length === 0" class="detail-panel">
+            <p class="panel-kicker">Sin notificaciones reales</p>
+            <h3>No hay eventos pendientes</h3>
+            <p class="detail-copy">
+              Las notificaciones apareceran cuando existan eventos guardados realmente.
+            </p>
+          </div>
+        </section>
+      </ng-container>
+    </main>
   </div>
 </section>

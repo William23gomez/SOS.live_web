@@ -1,0 +1,64 @@
+<section class="admin-companies-shell">
+  <div class="admin-companies-hero">
+    <div>
+      <p class="admin-kicker">Empresas</p>
+      <h2>Empresas vinculadas e inscritas</h2>
+    </div>
+
+    <div class="admin-companies-metrics">
+      <article class="admin-company-metric">
+        <span>Total registradas</span>
+        <strong>{{ companies.length }}</strong>
+      </article>
+      <article class="admin-company-metric">
+        <span>Vinculadas</span>
+        <strong>{{ approvedCompaniesCount }}</strong>
+      </article>
+      <article class="admin-company-metric">
+        <span>Pendientes</span>
+        <strong>{{ pendingCompaniesCount }}</strong>
+      </article>
+    </div>
+  </div>
+
+  <div class="admin-company-cards" *ngIf="!isLoading && companies.length">
+    <article class="admin-company-card" *ngFor="let company of companies">
+      <div class="admin-company-card-head">
+        <div class="admin-company-title">
+          <strong>{{ company.nombre }}</strong>
+          <p>{{ company.createdAt ? ('Vinculada desde ' + (company.createdAt | date:'mediumDate')) : 'Registro empresarial activo' }}</p>
+        </div>
+        <span class="admin-pill" [class.admin-pill-ok]="company.estado === 'Aprobada'" [class.admin-pill-warn]="company.estado !== 'Aprobada'">
+          {{ company.estado }}
+        </span>
+      </div>
+
+      <div class="admin-company-meta">
+        <div class="admin-company-meta-item">
+          <span class="admin-company-label">Correo</span>
+          <strong>{{ company.email || 'Sin correo' }}</strong>
+        </div>
+        <div class="admin-company-meta-item">
+          <span class="admin-company-label">Telefono</span>
+          <strong>{{ company.telefono || 'Sin telefono' }}</strong>
+        </div>
+        <div class="admin-company-meta-item">
+          <span class="admin-company-label">NIT</span>
+          <strong>{{ company.nit || 'Sin NIT' }}</strong>
+        </div>
+        <div class="admin-company-meta-item">
+          <span class="admin-company-label">Identificador</span>
+          <strong>{{ company.uid }}</strong>
+        </div>
+      </div>
+    </article>
+  </div>
+
+  <div class="admin-empty" *ngIf="isLoading">
+    Cargando empresas vinculadas e inscritas...
+  </div>
+
+  <div class="admin-empty" *ngIf="!isLoading && !companies.length">
+    No hay empresas registradas todavia.
+  </div>
+</section>
