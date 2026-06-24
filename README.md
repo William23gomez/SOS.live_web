@@ -132,6 +132,91 @@ Para publicar frontend + backend publico:
 cd backend
 npm install
 cd sos.live-frontend
+
+## URL del sistema desplegado
+
+Aplicación en producción:
+
+```text
+https://soslive-f7513.web.app
+```
+
+---
+
+## Variables de entorno de ejemplo
+
+Crear un archivo `.env.example` con la siguiente estructura:
+
+```env
+BACKEND_PORT=
+FRONTEND_URL=
+PUBLIC_APP_URL=
+APP_FIREBASE_WEB_API_KEY=
+PUBLIC_BACKEND_URL=
+MERCADO_PAGO_ACCESS_TOKEN=
+MERCADO_PAGO_PUBLIC_KEY=
+MERCADO_PAGO_REDIRECT_URL=
+MERCADO_PAGO_NOTIFICATION_URL=
+APP_FIREBASE_PROJECT_ID=
+APP_FIREBASE_PRIVATE_KEY_ID=
+APP_FIREBASE_PRIVATE_KEY=
+APP_FIREBASE_CLIENT_EMAIL=
+APP_FIREBASE_CLIENT_ID=
+APP_FIREBASE_CLIENT_X509_CERT_URL=
+```
+
+**Importante:** Nunca subir credenciales reales al repositorio.
+
+---
+
+## Pruebas realizadas post-despliegue
+
+Se validaron las siguientes funcionalidades:
+
+* Carga correcta de la URL pública
+* Registro de usuarios
+* Inicio de sesión
+* Flujo de autenticación con Firebase
+* Operaciones CRUD
+* Integración con Firestore
+* Integración con Mercado Pago
+* Navegación entre rutas internas
+* Diseño responsive en distintos dispositivos
+
+---
+
+## Riesgos identificados
+
+* Exposición accidental de credenciales en GitHub
+* Error de conexión a Firebase en producción
+* Fallos de autenticación
+* Dependencias incompatibles
+* Error 404 en rutas internas
+* Configuración incorrecta de Mercado Pago
+
+Medidas preventivas:
+
+* Uso de `.gitignore`
+* Variables de entorno
+* Validación de builds antes de despliegue
+* Pruebas funcionales post-deploy
+
+---
+
+## Autores
+
+Proyecto desarrollado por:
+
+* William Gómez
+* Laura Camila Silva
+* Equipo SOS Live
+
+---
+
+## Licencia
+
+Proyecto desarrollado con fines académicos y educativos.
+
 npm run build
 cd ..
 firebase deploy --only functions,hosting
