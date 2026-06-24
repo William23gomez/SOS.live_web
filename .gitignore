@@ -33,3 +33,9 @@ Thumbs.db
 
 # Repo backup
 sos.live-frontend/.git.frontend-backup/
+
+# Environment and secrets
+.env
+.env.local
+backend/.env
+backend/serviceAccountKey.json
